@@ -28,7 +28,7 @@ jobs:
           distribution: temurin
           java-version: "25"
           cache: maven
-      - name: Build and test (Testcontainers: PostgreSQL, MongoDB, Kafka, Redis)
+      - name: "Build and test (Testcontainers: PostgreSQL, MongoDB, Kafka, Redis)"
         run: |
           chmod +x mvnw
           ./mvnw -B -ntp verify
