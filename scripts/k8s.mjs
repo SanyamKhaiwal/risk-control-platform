@@ -18,7 +18,9 @@ const EDGE = 'https://localhost:8443';
 const METRICS_SERVER = 'https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.8.0/components.yaml';
 const APP_IMAGES = ['risk-service', 'control-service', 'gateway'].map((name) => `risk-control-platform/${name}:local`);
 const DASHBOARD_IMAGE = 'risk-control-platform/dashboard:k8s';
-const DATA_IMAGES = ['postgres:17.11', 'mongo:8.0.34', 'apache/kafka:4.3.2', 'redis:7.4.12'];
+// MONGO_IMAGE: CI runs 7.0, as MongoDB 8 won't start on its kernel (.github/workflows/ci.yml).
+const MONGO_IMAGE = process.env.MONGO_IMAGE ?? 'mongo:8.0.34';
+const DATA_IMAGES = ['postgres:17.11', MONGO_IMAGE, 'apache/kafka:4.3.2', 'redis:7.4.12'];
 const args = process.argv.slice(2);
 
 const run = (command, commandArgs, options = {}) =>
@@ -127,6 +129,7 @@ async function up() {
 
   step('Applying deploy/k8s');
   await run('kubectl', ['apply', '-k', 'deploy/k8s']);
+  if (MONGO_IMAGE !== 'mongo:8.0.34') await run('kubectl', ['-n', NAMESPACE, 'set', 'image', 'statefulset/mongo', `mongo=${MONGO_IMAGE}`]);
   // A changed image under the same tag isn't noticed by Kubernetes: restart the app workloads so they pick it up.
   if (!args.includes('--no-build')) {
     await run('kubectl', ['-n', NAMESPACE, 'rollout', 'restart', 'deployment/risk-service', 'deployment/control-service',

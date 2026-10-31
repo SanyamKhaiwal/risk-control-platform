@@ -8,6 +8,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+# MongoDB 7.0 in CI only: every current MongoDB 8 release refuses to start on Linux 6.19 to 7.0.13 (SERVER-121912,
+# a TCMalloc/rseq incompatibility), which GitHub's runners have. 7.0 has what the app uses (replica set,
+# transactions); everywhere else runs 8.0. MONGO_IMAGE is read by compose.yaml, the Control Service's
+# Testcontainers setup and scripts/k8s.mjs.
+env:
+  MONGO_IMAGE: mongo:7.0.43
+
 permissions:
   contents: read
 
@@ -15,7 +22,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# Ubuntu 24.04, not ubuntu-latest: MongoDB 8 refuses to start on Linux 6.19+ (SERVER-121912), which Ubuntu 26 has.
 jobs:
   java:
     name: Java services (build, unit and integration tests)

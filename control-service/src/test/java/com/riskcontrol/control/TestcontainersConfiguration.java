@@ -14,7 +14,8 @@ public class TestcontainersConfiguration {
     @ServiceConnection
     MongoDBContainer mongoContainer() {
         // Testcontainers 2 starts a standalone server unless a replica set is requested.
-        return new MongoDBContainer("mongo:8.0.34").withReplicaSet();
+        // MONGO_IMAGE: CI runs 7.0, as MongoDB 8 won't start on its kernel (.github/workflows/ci.yml).
+        return new MongoDBContainer(System.getenv().getOrDefault("MONGO_IMAGE", "mongo:8.0.34")).withReplicaSet();
     }
 
     @Bean

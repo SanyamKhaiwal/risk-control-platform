@@ -53,7 +53,7 @@ services:
   # creates them through MongoDB's localhost exception: "admin" (root, used here only) and "control" (read/write on
   # controldb only, used by the Control Service). It reports healthy once it is primary and can authenticate.
   mongo:
-    image: mongo:8.0.34
+    image: ${MONGO_IMAGE:-mongo:8.0.34} # CI sets 7.0 (.github/workflows/ci.yml)
     entrypoint:
       - bash
       - -c
