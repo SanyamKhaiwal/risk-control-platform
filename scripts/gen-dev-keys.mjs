@@ -21,7 +21,10 @@ const pairs = [
   { name: 'events-control', make: () => generateKeyPairSync('ed25519', encoding) },
 ];
 
-mkdirSync(keysDir, { recursive: true });
+// The folder is the owner's alone; the files in it are readable, because each one is mounted into a container that
+// runs as its own user (UID 999 for the Java services): with 0600 they couldn't read it on Linux. (Docker Desktop on
+// Windows and macOS doesn't apply these permissions to mounts.)
+mkdirSync(keysDir, { recursive: true, mode: 0o700 });
 for (const { name, make } of pairs) {
   const privatePath = join(keysDir, `${name}-private.pem`);
   const publicPath = join(keysDir, `${name}-public.pem`);
@@ -30,7 +33,7 @@ for (const { name, make } of pairs) {
     continue;
   }
   const { privateKey, publicKey } = make();
-  writeFileSync(privatePath, privateKey, { mode: 0o600 });
+  writeFileSync(privatePath, privateKey, { mode: 0o644 });
   writeFileSync(publicPath, publicKey);
   console.log(`Wrote ${privatePath}\nWrote ${publicPath}`);
 }
@@ -39,6 +42,6 @@ const chainKey = join(keysDir, 'assessment-chain.key');
 if (!force && existsSync(chainKey)) {
   console.log('Keys already exist: assessment-chain');
 } else {
-  writeFileSync(chainKey, `${randomBytes(32).toString('base64')}\n`, { mode: 0o600 });
+  writeFileSync(chainKey, `${randomBytes(32).toString('base64')}\n`, { mode: 0o644 });
   console.log(`Wrote ${chainKey}`);
 }
