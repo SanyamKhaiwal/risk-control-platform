@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // One step from clone to a running platform: starts Docker if needed, prepares .env and the dev keys on first run,
 // builds and starts all containers, loads the demo data into an empty register, and opens the dashboard.
-// Usage: node scripts/start.mjs [--no-open] [--no-seed]
+// Usage: node scripts/start.mjs [--no-open] [--no-seed]     --prepare: only make .env and the keys (CI, scripts/k8s.mjs)
 
 import { spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
@@ -101,6 +101,11 @@ function openBrowser(url) {
 }
 
 try {
+  if (args.includes('--prepare')) {
+    ensureEnv();
+    await run(process.execPath, [join(root, 'scripts', 'gen-dev-keys.mjs')]);
+    process.exit(0);
+  }
   await ensureDocker();
   ensureEnv();
   await run(process.execPath, [join(root, 'scripts', 'gen-dev-keys.mjs')]);

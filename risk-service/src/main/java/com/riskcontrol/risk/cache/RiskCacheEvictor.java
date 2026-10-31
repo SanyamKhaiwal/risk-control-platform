@@ -46,7 +46,7 @@ class RiskCacheEvictor {
     private void clear(String name) {
         Cache cache = caches.getCache(name);
         if (cache != null) {
-            cache.clear();
+            cache.invalidate(); // at once: clear() may be deferred, so the next read could still see the old entry
         }
     }
 }

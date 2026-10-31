@@ -1,0 +1,17 @@
+# Weekly update pull requests for every kind of dependency; CI (ci.yml) tests each one before it can be merged.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      spring: { patterns: ["org.springframework*"] }
+  - package-ecosystem: npm
+    directory: /dashboard
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /deploy/docker
+    schedule: { interval: weekly }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }

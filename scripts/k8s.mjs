@@ -40,7 +40,7 @@ const output = (command, commandArgs) => spawnSync(command, commandArgs, { cwd: 
 
 function readEnv() {
   const envPath = join(root, '.env');
-  if (!existsSync(envPath)) throw new Error('No .env: run node scripts/start.mjs once first (it makes .env and the keys).');
+  if (!existsSync(envPath)) throw new Error('No .env: run node scripts/start.mjs --prepare first (it makes .env and the keys).');
   return Object.fromEntries(
     readFileSync(envPath, 'utf8')
       .split(/\r?\n/)
@@ -100,11 +100,17 @@ async function up() {
     await run('docker', ['build', '-f', 'deploy/docker/dashboard.Dockerfile', '--build-arg', 'VITE_API_URL=', '-t', DASHBOARD_IMAGE, '.']);
   }
   step('Loading the images into the cluster');
-  // One platform at a time, not "kind load": with Docker Desktop's image store, kind imports every platform and the
-  // build attestations, which fails ("content digest not found") and has crashed Docker Desktop.
+  // With the containerd image store (Docker Desktop), one platform at a time, not "kind load": kind imports every
+  // platform and the build attestations, which fails ("content digest not found") and has crashed Docker Desktop.
+  // With the classic store (e.g. CI runners) there is only one platform, and kind load works.
+  const containerdStore = output('docker', ['info', '--format', '{{json .DriverStatus}}']).includes('io.containerd.snapshotter');
   for (const image of [...APP_IMAGES, DASHBOARD_IMAGE, ...DATA_IMAGES, 'busybox:1.37.0']) {
     if (!output('docker', ['image', 'inspect', '--format', 'x', image]).trim()) await run('docker', ['pull', '-q', image]);
-    await run('sh', ['-c', `docker save --platform linux/amd64 ${image} | docker exec -i ${CLUSTER}-control-plane ctr -n k8s.io images import --snapshotter=overlayfs - > /dev/null`]);
+    if (containerdStore) {
+      await run('sh', ['-c', `docker save --platform linux/amd64 ${image} | docker exec -i ${CLUSTER}-control-plane ctr -n k8s.io images import --snapshotter=overlayfs - > /dev/null`]);
+    } else {
+      await run('kind', ['load', 'docker-image', '--name', CLUSTER, image]);
+    }
     console.log(`  loaded ${image}`);
   }
 

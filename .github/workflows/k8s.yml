@@ -1,0 +1,55 @@
+# The platform on Kubernetes (docs/kubernetes.md): deploys to a throwaway kind cluster on the runner with
+# scripts/k8s.mjs, exactly as on a laptop, and runs load-tests/k8s-checks.mjs through the HTTPS edge: pods, the edge,
+# network policies, and Gateways replaced under load without a failed request. Autoscaling and the live-hub check
+# need a quiet machine for steady numbers, so they run on a laptop rather than here.
+name: Kubernetes
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: k8s-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-and-check:
+    name: Deploy to kind and check
+    # Ubuntu 24.04: MongoDB 8 refuses to start on Linux 6.19+ (ci.yml).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Install kind
+        run: |
+          curl -fsSLo kind https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64
+          sudo install kind /usr/local/bin/kind
+          kind version && kubectl version --client
+
+      - name: .env and dev keys
+        run: node scripts/start.mjs --prepare
+
+      - name: Cluster, images, Secrets, manifests, demo data (node scripts/k8s.mjs)
+        run: node scripts/k8s.mjs
+
+      - name: Checks through the edge
+        run: |
+          node load-tests/make-tokens.mjs 6000
+          node load-tests/k8s-checks.mjs --skip hpa,hub
+
+      - name: Cluster state and logs
+        if: failure()
+        run: |
+          kubectl -n rcp get pods,svc,hpa,networkpolicy -o wide
+          kubectl -n rcp get events --sort-by=.lastTimestamp | tail -40
+          for app in gateway risk-service control-service edge; do
+            echo "== $app"; kubectl -n rcp logs -l app=$app --tail=80 --all-containers || true
+          done

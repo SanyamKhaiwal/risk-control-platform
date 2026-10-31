@@ -1,8 +1,12 @@
+# Every push and pull request: build and test everything, scan for secrets and vulnerable dependencies, start the
+# whole platform and attack it, then (main only) publish the images that passed to GitHub Container Registry.
+# The Kubernetes deployment is checked by k8s.yml.
 name: CI
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -11,48 +15,116 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Ubuntu 24.04, not ubuntu-latest: MongoDB 8 refuses to start on Linux 6.19+ (SERVER-121912), which Ubuntu 26 has.
 jobs:
-  build:
-    name: Build and test (Java services)
-    runs-on: ubuntu-latest
+  java:
+    name: Java services (build, unit and integration tests)
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-
+      # Compiled for Java 21 (pom.xml); tested on 25, the runtime in the images.
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
           cache: maven
-
-      - name: Build and test
+      - name: Build and test (Testcontainers: PostgreSQL, MongoDB, Kafka, Redis)
         run: |
           chmod +x mvnw
           ./mvnw -B -ntp verify
+      - name: Keep the test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: surefire-reports
+          path: "*/target/surefire-reports/"
 
-  infra:
-    name: Local infrastructure smoke test
-    runs-on: ubuntu-latest
+  dashboard:
+    name: Dashboard (type check, tests, build, npm audit)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: dashboard
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+      - name: npm audit (fails on high or critical in what ships)
+        run: npm audit --omit=dev --audit-level=high
 
-      - name: Create .env from template
-        run: cp .env.example .env
+  secrets:
+    name: Secrets (gitleaks, full history)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        run: >
+          docker run --rm -v "$PWD:/src" zricethezav/gitleaks:v8.28.0
+          git /src --config /src/.gitleaks.toml --no-banner --redact
 
-      - name: Validate compose file
-        run: docker compose config --quiet
+  platform:
+    name: Whole platform (start, scan images, monitoring check, attack tests, publish)
+    needs: [java, dashboard, secrets]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
 
-      - name: Start infrastructure and wait until healthy
-        run: docker compose up -d --wait --wait-timeout 180 postgres mongo kafka redis
+      - name: Start everything, as a developer would (node scripts/start.mjs)
+        run: node scripts/start.mjs --no-open
 
-      - name: Generate dev JWT keys
-        run: node scripts/gen-dev-keys.mjs
+      - name: Trivy (images; fails on a critical vulnerability that has a fix)
+        run: |
+          for image in gateway risk-service control-service dashboard; do
+            echo "== $image"
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.69.3 image -q \
+              --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --format table "risk-control-platform/$image:local"
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.69.3 image -q \
+              --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 --format table "risk-control-platform/$image:local" > /dev/null
+          done
 
-      - name: Show container status and logs on failure
+      - name: Monitoring check (metrics, traces, dashboards, alerts)
+        run: node scripts/check-monitoring.mjs
+
+      - name: Browser for the XSS checks (playwright-core with the runner's Chrome)
+        run: npm install --prefix "$RUNNER_TEMP/pw" --no-save --no-audit --no-fund playwright-core@1.64.1
+
+      - name: Attack tests (security/attack-tests.mjs, sections A-F)
+        env:
+          PLAYWRIGHT_CORE: ${{ runner.temp }}/pw/node_modules/playwright-core
+          BROWSER_CHANNEL: chrome
+        run: |
+          sleep 65 # the monitoring check used up this minute's sign-in allowance for this address
+          node security/attack-tests.mjs
+
+      - name: Container status and logs
         if: failure()
         run: |
           docker compose ps -a
-          docker compose logs --no-color
+          docker compose logs --no-color --tail 200
 
-      - name: Tear down
-        if: always()
-        run: docker compose down -v
+      - name: Publish the tested images to ghcr.io (main only)
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          for image in gateway risk-service control-service dashboard; do
+            for tag in "${GITHUB_SHA::12}" latest; do
+              docker tag "risk-control-platform/$image:local" "ghcr.io/$owner/rcp-$image:$tag"
+              docker push -q "ghcr.io/$owner/rcp-$image:$tag"
+            done
+          done
