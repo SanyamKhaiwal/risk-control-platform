@@ -2,7 +2,7 @@
 # The React dashboard, built with Node and served by an unprivileged nginx. Build from the repo root:
 #   docker build -f deploy/docker/dashboard.Dockerfile .
 
-FROM node:22.23.4-alpine3.24 AS build
+FROM node:26.12.1-alpine3.24 AS build
 WORKDIR /app
 COPY dashboard/package.json dashboard/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
