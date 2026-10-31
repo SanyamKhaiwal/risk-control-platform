@@ -1,0 +1,25 @@
+# Grafana Tempo: receives traces from the three Java services over OTLP/HTTP (port 4318) and serves them to
+# Grafana (port 3200). Single process, local disk, traces kept 24 hours. Not published to the host.
+stream_over_http_enabled: true
+server:
+  http_listen_port: 3200
+  log_level: warn
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: 0.0.0.0:4318
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/traces
+    wal:
+      path: /var/tempo/wal
+
+compactor:
+  compaction:
+    block_retention: 24h

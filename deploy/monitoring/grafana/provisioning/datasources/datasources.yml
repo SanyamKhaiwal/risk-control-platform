@@ -1,0 +1,27 @@
+# Grafana data sources, set up at start-up. Exemplars on the Prometheus latency charts link a point straight to
+# the trace of that request in Tempo.
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 5s
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+    jsonData:
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true

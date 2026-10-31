@@ -1,0 +1,11 @@
+# Loads the dashboards in /var/lib/grafana/dashboards (deploy/monitoring/grafana/dashboards) at start-up.
+# They are files in the repo: change them there, not in the Grafana UI.
+apiVersion: 1
+providers:
+  - name: risk-control-platform
+    folder: Risk & Control
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards

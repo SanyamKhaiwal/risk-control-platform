@@ -1,0 +1,63 @@
+# The edge in Kubernetes: HTTPS, the dashboard's files, and /api forwarded to the Gateways, all on one origin.
+# Mounted over the dashboard image's own config (deploy/k8s/edge.yaml).
+upstream gateways {
+    server gateway:8080;
+    keepalive 64;
+}
+
+server {
+    listen 8443 ssl;
+    http2 on;
+    server_name _;
+    root /usr/share/nginx/html;
+    server_tokens off;
+
+    ssl_certificate /etc/nginx/tls/tls.crt;
+    ssl_certificate_key /etc/nginx/tls/tls.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    # Plain HTTP sent to this port (a browser given "localhost:8443" without https://) is redirected, not refused.
+    error_page 497 =301 https://$host:$server_port$request_uri;
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Cross-Origin-Opener-Policy "same-origin" always;
+    add_header Cross-Origin-Resource-Policy "same-origin" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+
+    client_max_body_size 256k;
+
+    # Forwarded to the Gateways. X-Forwarded-For is overwritten, not appended to: the Gateway trusts it for the
+    # per-address sign-in limit, so a client must not be able to supply its own (docs/security-review.md SEC-17).
+    location /api/ {
+        proxy_pass http://gateways;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    # Live updates: a long-lived server-sent event stream; pass each event on at once.
+    location = /api/live {
+        proxy_pass http://gateways;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_buffering off;
+        proxy_read_timeout 1h;
+    }
+
+    location /assets/ {
+        expires 1y;
+    }
+
+    location / {
+        expires -1;
+        try_files $uri $uri/ /index.html;
+    }
+}

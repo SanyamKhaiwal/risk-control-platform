@@ -1,0 +1,14 @@
+rcp:
+  auth:
+    private-key-location: classpath:test-keys/jwt-private.pem
+    public-key-location: classpath:test-keys/jwt-public.pem
+    login-attempts-per-minute: 5
+    # High enough for the whole test class, which logs in from one address.
+    login-attempts-per-minute-per-address: 1000
+  rate-limit:
+    replenish-rate: 5
+    burst-capacity: 10
+management:
+  tracing:
+    export:
+      enabled: false

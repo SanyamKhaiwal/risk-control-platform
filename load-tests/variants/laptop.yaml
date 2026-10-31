@@ -1,0 +1,17 @@
+# Load-test variant: limits that fit a 4-core laptop (Intel i5-11300H: 4 cores, 8 threads, about 40% already busy
+# with other apps), so the platform, its monitoring and k6 don't fight over the cores and the numbers are stable.
+# docs/performance.md turns the per-request CPU cost measured here into estimates for bigger machines.
+x-limits:
+  gateway: &gateway { cpus: "1.0", memory: 512M }
+  service: &service { cpus: "0.75", memory: 768M }
+services:
+  gateway: { deploy: { resources: { limits: *gateway } } }
+  risk-service: { deploy: { resources: { limits: *service } } }
+  control-service: { deploy: { resources: { limits: *service } } }
+  kafka: { deploy: { resources: { limits: { cpus: "0.5", memory: 1G } } } }
+  mongo: { deploy: { resources: { limits: { cpus: "0.5", memory: 1G } } } }
+  postgres: { deploy: { resources: { limits: { cpus: "0.25", memory: 512M } } } }
+  redis: { deploy: { resources: { limits: { cpus: "0.25", memory: 256M } } } }
+  prometheus: { deploy: { resources: { limits: { cpus: "0.25", memory: 384M } } } }
+  tempo: { deploy: { resources: { limits: { cpus: "0.25", memory: 1G } } } }
+  grafana: { deploy: { resources: { limits: { cpus: "0.25", memory: 256M } } } }

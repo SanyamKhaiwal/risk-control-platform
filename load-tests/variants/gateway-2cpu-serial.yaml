@@ -1,0 +1,10 @@
+# Load-test variant: the JVM's own collector (Serial), Gateway on 2 CPUs: isolates the effect of the extra CPU.
+x-jvm: &jvm
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -XX:+UseSerialGC"
+services:
+  gateway:
+    environment: *jvm
+  risk-service:
+    environment: *jvm
+  control-service:
+    environment: *jvm

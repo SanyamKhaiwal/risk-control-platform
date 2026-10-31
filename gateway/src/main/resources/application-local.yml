@@ -1,0 +1,7 @@
+# Reads the repo's .env so the service runs from the IDE or ./mvnw without exporting variables.
+# Both paths are tried: the working directory is the repo root (IDE) or the module folder (spring-boot:run).
+spring:
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]

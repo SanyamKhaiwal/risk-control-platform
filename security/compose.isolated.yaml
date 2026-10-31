@@ -1,0 +1,16 @@
+# A throwaway copy of the platform for destructive security tests (active ZAP scans as users who can write,
+# forged Kafka messages). Same images, its own volumes and network, and no host ports, so it runs next to the
+# normal stack without touching its data. Reach it from containers on the rcp-isolated_default network.
+#   docker compose -p rcp-isolated -f compose.yaml -f security/compose.isolated.yaml up -d --wait
+#   docker compose -p rcp-isolated -f compose.yaml -f security/compose.isolated.yaml down -v
+services:
+  postgres: { ports: !reset [] }
+  mongo: { ports: !reset [] }
+  kafka: { ports: !reset [] }
+  redis: { ports: !reset [] }
+  control-service: { ports: !reset [] }
+  risk-service: { ports: !reset [] }
+  gateway: { ports: !reset [] }
+  dashboard: { ports: !reset [] }
+  prometheus: { ports: !reset [] }
+  grafana: { ports: !reset [] }

@@ -1,0 +1,21 @@
+# Load tests run against a throwaway copy of the platform (security/compose.isolated.yaml) so the demo data stays
+# clean, with its Grafana and Prometheus published on other ports so you can watch the test live:
+#   Grafana http://localhost:3001 · Prometheus http://localhost:9091
+# Use through load-tests/run.mjs, which also stops the normal stack while the test runs (they'd share the CPUs).
+services:
+  gateway:
+    environment:
+      # Production-like sampling: tracing every request under load would measure the tracing, not the platform.
+      TRACING_SAMPLE_RATE: "0.1"
+      # The sign-in test sends many sign-ins from one address (k6); real users come from many addresses.
+      LOGIN_ATTEMPTS_PER_ADDRESS: "1000000"
+  risk-service:
+    environment:
+      TRACING_SAMPLE_RATE: "0.1"
+  control-service:
+    environment:
+      TRACING_SAMPLE_RATE: "0.1"
+  grafana:
+    ports: !override ["127.0.0.1:3001:3000"]
+  prometheus:
+    ports: !override ["127.0.0.1:9091:9090"]

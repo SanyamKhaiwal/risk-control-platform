@@ -1,0 +1,14 @@
+# The platform on Kubernetes: kubectl apply -k deploy/k8s (scripts/k8s.mjs does it, with the images and Secrets).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rcp
+resources:
+  - namespace.yaml
+  - data.yaml
+  - apps.yaml
+  - networkpolicies.yaml
+configMapGenerator:
+  - name: edge-config
+    files: [edge.conf.template]
+labels:
+  - pairs: { app.kubernetes.io/part-of: risk-control-platform }

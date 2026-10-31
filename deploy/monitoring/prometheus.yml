@@ -1,0 +1,21 @@
+# Prometheus: scrapes the three Java services' metrics on their management port (9091, not published to the host)
+# every 5 s, and evaluates the alert rules in alerts.yml. UI on http://localhost:9090 (Status > Targets, Alerts).
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: gateway
+    metrics_path: /actuator/prometheus
+    static_configs: [{ targets: ["gateway:9091"] }]
+  - job_name: risk-service
+    metrics_path: /actuator/prometheus
+    static_configs: [{ targets: ["risk-service:9091"] }]
+  - job_name: control-service
+    metrics_path: /actuator/prometheus
+    static_configs: [{ targets: ["control-service:9091"] }]
+  - job_name: prometheus
+    static_configs: [{ targets: ["localhost:9090"] }]

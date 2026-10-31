@@ -1,0 +1,6 @@
+* text=auto
+
+# Shell scripts must keep LF line endings or they fail on Linux CI and in containers.
+mvnw text eol=lf
+*.sh text eol=lf
+*.cmd text eol=crlf

@@ -1,0 +1,99 @@
+spring:
+  application:
+    name: control-service
+  profiles:
+    default: local
+  mongodb:
+    uri: ${MONGO_URI:mongodb://localhost:27017/controldb?directConnection=true}
+  data:
+    mongodb:
+      # Creates the unique (controlId, sequence) index that keeps each hash chain linear.
+      auto-index-creation: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    # Traces continue across Kafka: the producer adds the trace context to each record, the consumer picks it up.
+    template:
+      observation-enabled: true
+    listener:
+      observation-enabled: true
+    producer:
+      acks: all
+    consumer:
+      group-id: control-service
+      auto-offset-reset: earliest
+
+rcp:
+  jwt:
+    issuer: rcp-gateway
+    public-key-location: file:${JWT_PUBLIC_KEY_PATH:deploy/keys/jwt-public.pem}
+  # Kafka events are signed by their sender (Ed25519) and verified by the receiver (docs/security-review.md SEC-07).
+  events:
+    signing-key-location: file:${EVENTS_SIGNING_KEY_PATH:deploy/keys/events-control-private.pem}
+    peer-public-key-location: file:${EVENTS_PEER_PUBLIC_KEY_PATH:deploy/keys/events-risk-public.pem}
+
+outbox:
+  publish-interval: 500ms
+  batch-size: 100
+
+control:
+  assessments:
+    # Secret key of the assessment hash chain (HMAC-SHA256); only this service has it.
+    chain-key-location: file:${ASSESSMENT_CHAIN_KEY_PATH:deploy/keys/assessment-chain.key}
+    # One-time migration: re-hash all chains with the current key (see ChainResealer). Leave off.
+    reseal: ${CONTROL_ASSESSMENTS_RESEAL:false}
+  retest:
+    # A worsening risk flags linked controls not assessed within this period.
+    stale-after: 30d
+
+server:
+  port: 8082
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Monitoring (ARCHITECTURE.md §14). In Docker the actuator listens on its own port (MANAGEMENT_SERVER_PORT=9091),
+# which isn't published: Prometheus scrapes it on the Docker network, and the API port never serves metrics.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    distribution:
+      # Buckets, so Prometheus can compute percentiles (p95, p99) across instances.
+      percentiles-histogram:
+        http.server.requests: true
+  observations:
+    enable:
+      # Noise in traces: a span per security filter, and a trace every 500 ms from the outbox timer even when idle.
+      # The outbox send itself is still traced, as part of the request that wrote the event (OutboxTracing).
+      spring.security: false
+      tasks.scheduled: false
+  tracing:
+    sampling:
+      # Every request is traced locally; lower it for load tests (TRACING_SAMPLE_RATE=0.1).
+      probability: ${TRACING_SAMPLE_RATE:1.0}
+    export:
+      # Off unless a collector is running (Docker Compose turns it on and points it at Tempo).
+      enabled: ${TRACING_EXPORT_ENABLED:false}
+  otlp:
+    metrics:
+      export:
+        # The OpenTelemetry starter would also push metrics over OTLP; Prometheus pulls them instead.
+        enabled: false
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+
+logging:
+  level:
+    # Kafka's clients log every connection attempt at INFO; after a restart, while Kafka is still starting, that was
+    # thousands of lines a minute and buried everything else.
+    org.apache.kafka: WARN

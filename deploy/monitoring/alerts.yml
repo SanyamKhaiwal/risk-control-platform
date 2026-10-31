@@ -1,0 +1,76 @@
+# Alert rules, evaluated by Prometheus. Firing alerts show on the Grafana "Platform overview" dashboard and at
+# http://localhost:9090/alerts. Each says what is wrong in plain words and what to look at.
+# Request alerts leave out /actuator (health checks and Prometheus scrapes), which aren't user traffic.
+groups:
+  - name: platform
+    rules:
+      - alert: ServiceDown
+        expr: up{job=~"gateway|risk-service|control-service"} == 0
+        for: 15s
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.job }} is not answering"
+          description: "Prometheus can't reach {{ $labels.job }}. Check: docker compose ps, docker compose logs {{ $labels.job }}."
+
+      - alert: HighErrorRate
+        expr: |
+          sum by (job) (rate(http_server_requests_seconds_count{uri!~"/actuator.*",status=~"5.."}[2m]))
+            / sum by (job) (rate(http_server_requests_seconds_count{uri!~"/actuator.*"}[2m])) > 0.05
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "More than 5% of {{ $labels.job }} requests fail"
+          description: "Server errors (5xx) for 2 minutes. The Platform overview dashboard shows which responses."
+
+      - alert: SlowRequests
+        expr: |
+          histogram_quantile(0.95, sum by (job, le) (rate(http_server_requests_seconds_bucket{uri!~"/actuator.*"}[5m]))) > 1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.job }} is slow: 1 in 20 requests takes over a second"
+          description: "p95 latency above 1 s for 5 minutes. Open a slow request's trace from the latency chart."
+
+  - name: events
+    rules:
+      - alert: OutboxBacklog
+        expr: rcp_outbox_pending > 50
+        for: 1m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.job }} has {{ $value }} events waiting to go to Kafka"
+          description: "The outbox isn't draining: Kafka may be down. Scores and re-test flags will catch up once it is back."
+
+      - alert: SlowRescore
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(rcp_assessment_to_rescore_seconds_bucket[5m]))) > 5
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Risk scores take more than 5 s to follow a control test"
+          description: "From a test being recorded to the risk being rescored, p95. Check Kafka lag on the Events dashboard."
+
+      - alert: KafkaConsumerLag
+        expr: max by (job) (kafka_consumer_fetch_manager_records_lag_max) > 100
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.job }} is {{ $value }} messages behind on Kafka"
+          description: "The consumer can't keep up, or is stuck on a message."
+
+  - name: security
+    rules:
+      - alert: ForgedEventRejected
+        expr: increase(rcp_events_consumed_total{outcome="rejected_signature"}[5m]) > 0
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.job }} rejected a {{ $labels.topic }} event without a valid signature"
+          description: "Something other than the platform's own services wrote to Kafka (docs/security-review.md SEC-07). Check who can reach the broker."
+
+      - alert: SignInAttack
+        expr: sum(rate(rcp_logins_total{outcome=~"failure|throttled"}[2m])) > 0.5
+        for: 1m
+        labels: { severity: warning }
+        annotations:
+          summary: "Many failed or throttled sign-ins ({{ $value | humanize }} per second)"
+          description: "Password guessing or spraying. The Security dashboard shows the trend."

@@ -1,0 +1,16 @@
+# gitleaks configuration: the default rules, plus the files that are allowed to contain key material.
+# Run: docker run --rm -v "$PWD:/src:ro" zricethezav/gitleaks:v8.28.0 dir /src --config /src/.gitleaks.toml
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test-only and git-ignored keys"
+paths = [
+  # RSA key pairs used only by the automated tests; never used to run the platform (see test-keys/README.md).
+  '''(risk-service|control-service|gateway)/src/test/resources/test-keys/''',
+  # Build output: copies of the test keys above.
+  '''/target/''',
+  # The local dev key pair, generated per machine by scripts/gen-dev-keys.mjs and git-ignored.
+  '''deploy/keys/''',
+]

@@ -1,0 +1,5 @@
+# One-off: records a CPU profile (Java Flight Recorder) of the Gateway under load, to see where its time goes.
+services:
+  gateway:
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -XX:StartFlightRecording=filename=/tmp/gateway.jfr,settings=profile,delay=60s,duration=60s"

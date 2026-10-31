@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test (Java services)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build and test
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -ntp verify
+
+  infra:
+    name: Local infrastructure smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Create .env from template
+        run: cp .env.example .env
+
+      - name: Validate compose file
+        run: docker compose config --quiet
+
+      - name: Start infrastructure and wait until healthy
+        run: docker compose up -d --wait --wait-timeout 180 postgres mongo kafka redis
+
+      - name: Generate dev JWT keys
+        run: node scripts/gen-dev-keys.mjs
+
+      - name: Show container status and logs on failure
+        if: failure()
+        run: |
+          docker compose ps -a
+          docker compose logs --no-color
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

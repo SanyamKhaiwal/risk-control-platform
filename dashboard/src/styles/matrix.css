@@ -1,0 +1,368 @@
+/* ---------- 5×5 risk matrix ---------- */
+
+.matrix {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 0 var(--s-2);
+}
+
+.matrix__y-title {
+  grid-row: 1;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  justify-self: center;
+  align-self: center;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+}
+
+.matrix__grid {
+  display: grid;
+  grid-template-columns: 20px repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.matrix__axis {
+  display: grid;
+  place-items: center;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix__x-title {
+  grid-column: 2;
+  text-align: center;
+  margin-top: 2px;
+  padding-left: 24px;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+.cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: var(--r);
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+  transition: box-shadow 150ms ease, filter 150ms ease;
+}
+
+.cell--LOW {
+  --band-bg: var(--low-bg);
+  --band-ink: var(--low-ink);
+}
+
+.cell--MEDIUM {
+  --band-bg: var(--medium-bg);
+  --band-ink: var(--medium-ink);
+}
+
+.cell--HIGH {
+  --band-bg: var(--high-bg);
+  --band-ink: var(--high-ink);
+}
+
+.cell--CRITICAL {
+  --band-bg: var(--critical-bg);
+  --band-ink: var(--critical-ink);
+}
+
+.cell {
+  background: var(--band-bg);
+  color: var(--band-ink);
+}
+
+/* Empty cells keep the zone visible but recede. */
+.cell.is-empty {
+  background: color-mix(in srgb, var(--band-bg) 42%, var(--sheet));
+}
+
+.cell__score {
+  position: absolute;
+  top: 5px;
+  left: 7px;
+  font-size: 10.5px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--band-ink) 62%, transparent);
+}
+
+.cell__count {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.cell.is-interactive {
+  cursor: pointer;
+}
+
+.cell.is-interactive:hover {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--band-ink) 45%, transparent);
+}
+
+.cell.is-selected {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.cell:focus-visible {
+  box-shadow: var(--focus-ring), inset 0 0 0 1px var(--band-ink);
+}
+
+.cell.was-posted {
+  animation: cell-posted 2200ms var(--ease-out);
+}
+
+@keyframes cell-posted {
+  0%,
+  30% {
+    box-shadow: inset 0 0 0 2px var(--band-ink), 0 0 0 4px color-mix(in srgb, var(--band-bg) 70%, transparent);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 transparent, 0 0 0 0 transparent;
+  }
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.legend__swatch--LOW {
+  background: var(--low-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--low-ink) 25%, transparent);
+}
+
+.legend__swatch--MEDIUM {
+  background: var(--medium-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--medium-ink) 25%, transparent);
+}
+
+.legend__swatch--HIGH {
+  background: var(--high-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--high-ink) 25%, transparent);
+}
+
+.legend__swatch--CRITICAL {
+  background: var(--critical-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--critical-ink) 25%, transparent);
+}
+
+.matrix-sheet .sheet__body {
+  display: grid;
+  gap: var(--s-4);
+}
+
+/* ---------- Score equation (risk detail) ---------- */
+
+/* Inherent → residual → matrix, read left to right as one statement. */
+.scores {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-5) var(--s-7);
+}
+
+.scores__arrow {
+  color: var(--ink-3);
+  align-self: center;
+}
+
+.score {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.score__label {
+  font-size: var(--t-sm);
+  color: var(--ink-3);
+}
+
+.score__equation {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+  font-size: var(--t-2xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.score__op {
+  color: var(--ink-3);
+  font-weight: 400;
+}
+
+.score__parts {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+.mini-matrix {
+  display: block;
+}
+
+@media (max-width: 760px) {
+  .scores {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .scores__arrow {
+    transform: rotate(90deg);
+  }
+}
+
+/* ---------- Login ---------- */
+
+.login {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 1fr);
+}
+
+.login__intro {
+  padding: var(--s-7) clamp(24px, 6vw, 88px);
+  display: grid;
+  align-content: center;
+  gap: var(--s-6);
+  border-right: 1px solid var(--rule);
+}
+
+.login__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.login__headline {
+  font-size: 2rem;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  max-width: 20ch;
+}
+
+.login__lede {
+  color: var(--ink-2);
+  max-width: 56ch;
+  font-size: var(--t-base);
+}
+
+.login__panel {
+  background: var(--sheet);
+  padding: var(--s-7) clamp(24px, 5vw, 72px);
+  display: grid;
+  align-content: center;
+}
+
+.login__form {
+  width: 100%;
+  max-width: 360px;
+  display: grid;
+  gap: var(--s-4);
+}
+
+.accounts {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  background: var(--sheet);
+  overflow: hidden;
+  max-width: 560px;
+}
+
+.accounts button {
+  display: grid;
+  grid-template-columns: 72px 130px 1fr;
+  gap: var(--s-3);
+  align-items: baseline;
+  width: 100%;
+  padding: 10px var(--s-4);
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: transparent;
+  text-align: left;
+  font-size: var(--t-sm);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.accounts button:last-child {
+  border-bottom: 0;
+}
+
+.accounts button:hover,
+.accounts button[aria-pressed='true'] {
+  background: var(--sheet-2);
+}
+
+.accounts__user {
+  font-weight: 600;
+}
+
+.accounts__role {
+  color: var(--ink-2);
+}
+
+.accounts__can {
+  color: var(--ink-3);
+}
+
+@media (max-width: 900px) {
+  .login {
+    grid-template-columns: 1fr;
+  }
+
+  /* On small screens the form comes first; the story and demo accounts follow. */
+  .login__panel {
+    order: -1;
+    padding-top: var(--s-6);
+    padding-bottom: var(--s-6);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .login__intro {
+    border-right: 0;
+    padding-top: var(--s-6);
+    padding-bottom: var(--s-6);
+    gap: var(--s-5);
+  }
+
+  .login__headline {
+    font-size: 1.5rem;
+  }
+
+  .accounts button {
+    grid-template-columns: 64px 1fr;
+  }
+
+  .accounts__can {
+    grid-column: 2;
+  }
+}

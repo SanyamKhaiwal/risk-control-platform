@@ -1,0 +1,15 @@
+# Keep the build context small and free of secrets.
+.git
+.github
+**/target
+**/node_modules
+dashboard/dist
+deploy/keys
+deploy/k8s
+docs
+load-tests
+.env
+*.log
+.idea
+.vscode
+.impeccable

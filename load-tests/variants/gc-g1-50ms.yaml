@@ -1,0 +1,10 @@
+# Load-test variant: the Java services with -XX:+UseG1GC -XX:MaxGCPauseMillis=50 (compare with load-tests/run.mjs --compose-extra).
+x-jvm: &jvm
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -XX:+UseG1GC -XX:MaxGCPauseMillis=50"
+services:
+  gateway:
+    environment: *jvm
+  risk-service:
+    environment: *jvm
+  control-service:
+    environment: *jvm

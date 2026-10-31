@@ -1,0 +1,5 @@
+# One-off: Java Flight Recorder CPU profile of the Gateway, started 30 s after boot, for 60 s (to /tmp/gateway.jfr).
+services:
+  gateway:
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -XX:StartFlightRecording=filename=/tmp/gateway.jfr,settings=profile,delay=75s,duration=60s"

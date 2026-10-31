@@ -1,0 +1,76 @@
+# Who may talk to whom (docs/security-review.md SEC-13, SEC-15). Everything in the namespace is closed by default;
+# each rule opens one path. The data stores and services are reachable only from the pods that use them; only the
+# edge is reachable from outside. (Probes come from the node's kubelet, which these rules don't apply to.)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: default-deny-ingress }
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: edge-from-anywhere }
+spec:
+  podSelector: { matchLabels: { app: edge } }
+  ingress: [{ ports: [{ port: 8443 }] }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: gateway-from-edge }
+spec:
+  podSelector: { matchLabels: { app: gateway } }
+  ingress: [{ from: [{ podSelector: { matchLabels: { app: edge } } }], ports: [{ port: 8080 }] }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: risk-service-from-gateway }
+spec:
+  podSelector: { matchLabels: { app: risk-service } }
+  ingress: [{ from: [{ podSelector: { matchLabels: { app: gateway } } }], ports: [{ port: 8081 }] }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: control-service-from-gateway-and-risk }
+spec:
+  podSelector: { matchLabels: { app: control-service } }
+  ingress:
+    - from: [{ podSelector: { matchLabels: { app: gateway } } }, { podSelector: { matchLabels: { app: risk-service } } }]
+      ports: [{ port: 8082 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: postgres-from-risk-service }
+spec:
+  podSelector: { matchLabels: { app: postgres } }
+  ingress: [{ from: [{ podSelector: { matchLabels: { app: risk-service } } }], ports: [{ port: 5432 }] }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: mongo-from-control-service }
+spec:
+  podSelector: { matchLabels: { app: mongo } }
+  ingress: [{ from: [{ podSelector: { matchLabels: { app: control-service } } }], ports: [{ port: 27017 }] }]
+---
+# Kafka has no login (SEC-13): reaching it at all is limited to the two services; forged events are also rejected
+# by signature (SEC-07).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: kafka-from-services }
+spec:
+  podSelector: { matchLabels: { app: kafka } }
+  ingress:
+    - from:
+        - podSelector: { matchLabels: { app: risk-service } }
+        - podSelector: { matchLabels: { app: control-service } }
+        - podSelector: { matchLabels: { app: kafka } }
+      ports: [{ port: 29092 }, { port: 9093 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: redis-from-gateway-and-risk }
+spec:
+  podSelector: { matchLabels: { app: redis } }
+  ingress:
+    - from: [{ podSelector: { matchLabels: { app: gateway } } }, { podSelector: { matchLabels: { app: risk-service } } }]
+      ports: [{ port: 6379 }]

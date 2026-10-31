@@ -1,0 +1,261 @@
+# The platform's own workloads. Every pod: non-root, no privilege escalation, all Linux capabilities dropped,
+# read-only root filesystem (Java writes only to an in-memory /tmp), probes on the unpublished management port 9091.
+# Keys come from the rcp-keys Secret, each pod mounting only the files it needs (as in compose.yaml).
+#
+# Restarts are made fast (docs/kubernetes.md, "Faster restarts"): the Java pods reserve little CPU but may use up to 2
+# while there's room, which the JVM's start-up needs most; the images carry an ahead-of-time cache of the start-up
+# (deploy/docker/java-service.Dockerfile); and probes look every 1-2 s, so traffic returns as soon as a pod is ready.
+#
+# The Risk and Control services run one replica each: each sends its outbox from a single publisher
+# (ARCHITECTURE.md §8.2). The Gateway holds no state of its own (rate limits are per instance, the live hub is
+# shared through Redis), so it runs several replicas and scales with load.
+apiVersion: v1
+kind: Service
+metadata: { name: control-service }
+spec:
+  selector: { app: control-service }
+  ports: [{ port: 8082 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: control-service }
+spec:
+  replicas: 1
+  strategy: { type: Recreate } # one outbox publisher at a time
+  selector: { matchLabels: { app: control-service } }
+  template:
+    metadata: { labels: { app: control-service } }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 999, runAsGroup: 999, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: control-service
+          image: risk-control-platform/control-service:local
+          imagePullPolicy: Never
+          ports: [{ containerPort: 8082 }, { name: management, containerPort: 9091 }]
+          env:
+            - { name: SPRING_PROFILES_ACTIVE, value: kubernetes }
+            - { name: MANAGEMENT_SERVER_PORT, value: "9091" }
+            - { name: LOGGING_STRUCTURED_FORMAT_CONSOLE, value: ecs }
+            - { name: SPRINGDOC_API_DOCS_ENABLED, value: "false" }
+            - { name: SPRINGDOC_SWAGGER_UI_ENABLED, value: "false" }
+            - { name: KAFKA_BOOTSTRAP, value: "kafka:29092" }
+            - { name: MONGO_PASSWORD, valueFrom: { secretKeyRef: { name: rcp-secrets, key: MONGO_PASSWORD } } }
+            - { name: MONGO_URI, value: "mongodb://control:$(MONGO_PASSWORD)@mongo:27017/controldb?replicaSet=rs0&authSource=admin" }
+            - { name: JWT_PUBLIC_KEY_PATH, value: /keys/jwt-public.pem }
+            - { name: EVENTS_SIGNING_KEY_PATH, value: /keys/events-control-private.pem }
+            - { name: EVENTS_PEER_PUBLIC_KEY_PATH, value: /keys/events-risk-public.pem }
+            - { name: ASSESSMENT_CHAIN_KEY_PATH, value: /keys/assessment-chain.key }
+          startupProbe: { httpGet: { path: /actuator/health/liveness, port: management }, periodSeconds: 1, failureThreshold: 180 }
+          readinessProbe: { httpGet: { path: /actuator/health/readiness, port: management }, periodSeconds: 2 }
+          livenessProbe: { httpGet: { path: /actuator/health/liveness, port: management }, periodSeconds: 10 }
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { cpu: "2", memory: 768Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: keys, mountPath: /keys, readOnly: true }
+      volumes:
+        - { name: tmp, emptyDir: { medium: Memory, sizeLimit: 64Mi } }
+        - name: keys
+          secret:
+            secretName: rcp-keys
+            items:
+              - { key: jwt-public.pem, path: jwt-public.pem }
+              - { key: events-control-private.pem, path: events-control-private.pem }
+              - { key: events-risk-public.pem, path: events-risk-public.pem }
+              - { key: assessment-chain.key, path: assessment-chain.key }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: risk-service }
+spec:
+  selector: { app: risk-service }
+  ports: [{ port: 8081 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: risk-service }
+spec:
+  replicas: 1
+  strategy: { type: Recreate } # one outbox publisher at a time
+  selector: { matchLabels: { app: risk-service } }
+  template:
+    metadata: { labels: { app: risk-service } }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 999, runAsGroup: 999, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: risk-service
+          image: risk-control-platform/risk-service:local
+          imagePullPolicy: Never
+          ports: [{ containerPort: 8081 }, { name: management, containerPort: 9091 }]
+          env:
+            - { name: SPRING_PROFILES_ACTIVE, value: kubernetes }
+            - { name: MANAGEMENT_SERVER_PORT, value: "9091" }
+            - { name: LOGGING_STRUCTURED_FORMAT_CONSOLE, value: ecs }
+            - { name: SPRINGDOC_API_DOCS_ENABLED, value: "false" }
+            - { name: SPRINGDOC_SWAGGER_UI_ENABLED, value: "false" }
+            - { name: DB_URL, value: "jdbc:postgresql://postgres:5432/riskdb" }
+            - { name: DB_USER, value: risk }
+            - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: rcp-secrets, key: DB_PASSWORD } } }
+            - { name: KAFKA_BOOTSTRAP, value: "kafka:29092" }
+            - { name: REDIS_HOST, value: redis }
+            - { name: REDIS_PASSWORD, valueFrom: { secretKeyRef: { name: rcp-secrets, key: REDIS_PASSWORD } } }
+            - { name: CONTROL_SERVICE_URL, value: "http://control-service:8082" }
+            - { name: JWT_PUBLIC_KEY_PATH, value: /keys/jwt-public.pem }
+            - { name: EVENTS_SIGNING_KEY_PATH, value: /keys/events-risk-private.pem }
+            - { name: EVENTS_PEER_PUBLIC_KEY_PATH, value: /keys/events-control-public.pem }
+          startupProbe: { httpGet: { path: /actuator/health/liveness, port: management }, periodSeconds: 1, failureThreshold: 180 }
+          readinessProbe: { httpGet: { path: /actuator/health/readiness, port: management }, periodSeconds: 2 }
+          livenessProbe: { httpGet: { path: /actuator/health/liveness, port: management }, periodSeconds: 10 }
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { cpu: "2", memory: 768Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: keys, mountPath: /keys, readOnly: true }
+      volumes:
+        - { name: tmp, emptyDir: { medium: Memory, sizeLimit: 64Mi } }
+        - name: keys
+          secret:
+            secretName: rcp-keys
+            items:
+              - { key: jwt-public.pem, path: jwt-public.pem }
+              - { key: events-risk-private.pem, path: events-risk-private.pem }
+              - { key: events-control-public.pem, path: events-control-public.pem }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: gateway }
+spec:
+  selector: { app: gateway }
+  ports: [{ port: 8080 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: gateway }
+spec:
+  replicas: 2
+  # Rolling updates never drop below the current number of ready Gateways.
+  strategy: { type: RollingUpdate, rollingUpdate: { maxUnavailable: 0, maxSurge: 1 } }
+  selector: { matchLabels: { app: gateway } }
+  template:
+    metadata: { labels: { app: gateway } }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 999, runAsGroup: 999, seccompProfile: { type: RuntimeDefault } }
+      # Finish requests in flight before stopping: the Service stops sending new ones first.
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: gateway
+          image: risk-control-platform/gateway:local
+          imagePullPolicy: Never
+          ports: [{ containerPort: 8080 }, { name: management, containerPort: 9091 }]
+          env:
+            - { name: SPRING_PROFILES_ACTIVE, value: kubernetes }
+            - { name: MANAGEMENT_SERVER_PORT, value: "9091" }
+            - { name: LOGGING_STRUCTURED_FORMAT_CONSOLE, value: ecs }
+            - { name: SERVER_SHUTDOWN, value: graceful }
+            # Behind the edge, the client's address arrives in X-Forwarded-For (set by the edge, not the client;
+            # the network policy lets only the edge reach the Gateway). Used by the per-address sign-in limit.
+            - { name: SERVER_FORWARD_HEADERS_STRATEGY, value: framework }
+            - { name: REDIS_HOST, value: redis }
+            - { name: REDIS_PASSWORD, valueFrom: { secretKeyRef: { name: rcp-secrets, key: REDIS_PASSWORD } } }
+            - { name: RISK_SERVICE_URL, value: "http://risk-service:8081" }
+            - { name: CONTROL_SERVICE_URL, value: "http://control-service:8082" }
+            - { name: CORS_ALLOWED_ORIGINS, value: "https://localhost:8443" }
+            - { name: JWT_PUBLIC_KEY_PATH, value: /keys/jwt-public.pem }
+            - { name: JWT_PRIVATE_KEY_PATH, value: /keys/jwt-private.pem }
+          startupProbe: { httpGet: { path: /actuator/health/liveness, port: management }, periodSeconds: 1, failureThreshold: 180 }
+          readinessProbe: { httpGet: { path: /actuator/health/readiness, port: management }, periodSeconds: 2 }
+          livenessProbe: { httpGet: { path: /actuator/health/liveness, port: management }, periodSeconds: 10 }
+          lifecycle:
+            # Give the Service a moment to stop routing here before the shutdown starts.
+            preStop: { sleep: { seconds: 5 } }
+          resources:
+            requests: { cpu: 500m, memory: 512Mi }
+            limits: { cpu: "2", memory: 768Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: keys, mountPath: /keys, readOnly: true }
+      volumes:
+        - { name: tmp, emptyDir: { medium: Memory, sizeLimit: 64Mi } }
+        - name: keys
+          secret:
+            secretName: rcp-keys
+            items:
+              - { key: jwt-public.pem, path: jwt-public.pem }
+              - { key: jwt-private.pem, path: jwt-private.pem }
+---
+# More Gateways when they're busy: 2 to 4, aiming at 60% of their requested CPU.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: gateway }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: gateway }
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 60 } }
+  behavior:
+    scaleDown: { stabilizationWindowSeconds: 60 }
+---
+# Maintenance (node drains) never takes all Gateways down at once.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: { name: gateway }
+spec:
+  minAvailable: 1
+  selector: { matchLabels: { app: gateway } }
+---
+# The edge: HTTPS, the dashboard and /api forwarded to the Gateways (edge.conf.template), on node port 30443,
+# which the kind cluster publishes as https://localhost:8443.
+apiVersion: v1
+kind: Service
+metadata: { name: edge }
+spec:
+  type: NodePort
+  selector: { app: edge }
+  ports: [{ port: 8443, targetPort: 8443, nodePort: 30443 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: edge }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: edge } }
+  template:
+    metadata: { labels: { app: edge } }
+    spec:
+      securityContext: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: edge
+          image: risk-control-platform/dashboard:k8s
+          imagePullPolicy: Never
+          ports: [{ containerPort: 8443 }]
+          env:
+            - { name: NGINX_ENTRYPOINT_WORKER_PROCESSES_AUTOTUNE, value: "1" }
+          readinessProbe: { tcpSocket: { port: 8443 }, periodSeconds: 5 }
+          resources:
+            requests: { cpu: 50m, memory: 32Mi }
+            limits: { cpu: 500m, memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: config, mountPath: /etc/nginx/templates/default.conf.template, subPath: edge.conf.template }
+            - { name: tls, mountPath: /etc/nginx/tls, readOnly: true }
+      volumes:
+        - { name: config, configMap: { name: edge-config } }
+        - { name: tls, secret: { secretName: edge-tls } }

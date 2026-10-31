@@ -1,0 +1,16 @@
+rcp:
+  jwt:
+    public-key-location: classpath:test-keys/jwt-public.pem
+  events:
+    signing-key-location: classpath:test-keys/events-control-private.pem
+    peer-public-key-location: classpath:test-keys/events-risk-public.pem
+control:
+  # Most tests change data directly in the database, which the list caches can't see; ListCacheTests turns them on.
+  list-cache:
+    ttl: 0s
+  assessments:
+    chain-key-location: classpath:test-keys/assessment-chain.key
+management:
+  tracing:
+    export:
+      enabled: false

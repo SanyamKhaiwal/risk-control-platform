@@ -1,0 +1,119 @@
+spring:
+  application:
+    name: gateway
+  profiles:
+    default: local
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+      password: ${REDIS_PASSWORD:}
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # Fail fast when a service is overloaded: 504 after 5 s instead of the client waiting a minute
+          # (seen in the load test: p99 of 60 s at 500 users). The longest real request takes well under a second.
+          httpclient:
+            connect-timeout: 2000
+            response-timeout: 5s
+          default-filters:
+            # Token bucket per user, in this Gateway's memory (LocalRateLimiter); over the limit returns 429.
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@localRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+          routes:
+            - id: risk-service
+              uri: ${RISK_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/risks/**,/api/dashboard/**
+            - id: control-service
+              uri: ${CONTROL_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/controls/**
+
+server:
+  port: 8080
+
+rcp:
+  auth:
+    issuer: rcp-gateway
+    token-ttl: 30m
+    private-key-location: file:${JWT_PRIVATE_KEY_PATH:deploy/keys/jwt-private.pem}
+    public-key-location: file:${JWT_PUBLIC_KEY_PATH:deploy/keys/jwt-public.pem}
+    login-attempts-per-minute: 10
+    # Across all usernames from one client address (password spraying). Behind a load balancer the
+    # address must come from a trusted X-Forwarded-For; see docs/security-review.md.
+    login-attempts-per-minute-per-address: ${LOGIN_ATTEMPTS_PER_ADDRESS:30}
+    # Demo accounts for local development only. Password for all of them: demo123
+    # erin holds both control roles, to show segregation of duties (she can't assess her own controls).
+    users:
+      - username: alice
+        password-hash: "$2a$10$BdOOjDwpZiNAjEh7hpQt2uVKq64cK2nb1inVD5RN2KzmVqA.S5xue"
+        roles: [RISK_OWNER]
+      - username: bob
+        password-hash: "$2a$10$BdOOjDwpZiNAjEh7hpQt2uVKq64cK2nb1inVD5RN2KzmVqA.S5xue"
+        roles: [CONTROL_OWNER]
+      - username: carol
+        password-hash: "$2a$10$BdOOjDwpZiNAjEh7hpQt2uVKq64cK2nb1inVD5RN2KzmVqA.S5xue"
+        roles: [CONTROL_TESTER]
+      - username: dave
+        password-hash: "$2a$10$BdOOjDwpZiNAjEh7hpQt2uVKq64cK2nb1inVD5RN2KzmVqA.S5xue"
+        roles: [VIEWER]
+      - username: erin
+        password-hash: "$2a$10$BdOOjDwpZiNAjEh7hpQt2uVKq64cK2nb1inVD5RN2KzmVqA.S5xue"
+        roles: [CONTROL_OWNER, CONTROL_TESTER]
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  # Largest request body passed on to a service (the biggest real one is a few text fields, ~20 KB).
+  max-request-size: 256KB
+  rate-limit:
+    replenish-rate: 20
+    burst-capacity: 40
+
+# Monitoring (ARCHITECTURE.md §14). In Docker the actuator listens on its own port (MANAGEMENT_SERVER_PORT=9091),
+# which isn't published: Prometheus scrapes it on the Docker network, and the API port never serves metrics.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    distribution:
+      # Buckets, so Prometheus can compute percentiles (p95, p99) across instances.
+      percentiles-histogram:
+        http.server.requests: true
+  observations:
+    enable:
+      # Noise in traces: a span per security filter, and a trace every 500 ms from the outbox timer even when idle.
+      # The outbox send itself is still traced, as part of the request that wrote the event (OutboxTracing).
+      spring.security: false
+      tasks.scheduled: false
+  tracing:
+    sampling:
+      # Every request is traced locally; lower it for load tests (TRACING_SAMPLE_RATE=0.1).
+      probability: ${TRACING_SAMPLE_RATE:1.0}
+    export:
+      # Off unless a collector is running (Docker Compose turns it on and points it at Tempo).
+      enabled: ${TRACING_EXPORT_ENABLED:false}
+  otlp:
+    metrics:
+      export:
+        # The OpenTelemetry starter would also push metrics over OTLP; Prometheus pulls them instead.
+        enabled: false
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+
+logging:
+  level:
+    # Kafka's clients log every connection attempt at INFO; after a restart, while Kafka is still starting, that was
+    # thousands of lines a minute and buried everything else.
+    org.apache.kafka: WARN

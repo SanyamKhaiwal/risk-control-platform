@@ -1,0 +1,14 @@
+# Load-test variant: the settings of the first (baseline) run: the JVM's own garbage collector choice (Serial with
+# this little memory) and the Gateway on 1 CPU. Used to check that a rerun reproduces the baseline.
+x-jvm: &jvm
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -XX:+UseSerialGC"
+services:
+  gateway:
+    environment: *jvm
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 512M }
+  risk-service:
+    environment: *jvm
+  control-service:
+    environment: *jvm

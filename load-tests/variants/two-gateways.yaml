@@ -1,0 +1,6 @@
+# Load-test variant: two Gateway instances (the copy publishes no Gateway port, so they don't clash). Docker's DNS
+# spreads connections to "gateway" over both; tests the live hub's one-fetch-per-address-for-the-whole-cluster.
+services:
+  gateway:
+    deploy:
+      replicas: 2

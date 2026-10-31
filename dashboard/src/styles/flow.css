@@ -1,0 +1,891 @@
+/* ---------- "How it works" page: the walkthrough fills one screen; only the side panel scrolls ---------- */
+
+.flow-node rect {
+  fill: var(--sheet);
+  stroke: var(--rule-2);
+  stroke-width: 1.25;
+  transition: stroke 200ms ease, fill 200ms ease;
+}
+
+.flow-node.is-data rect {
+  fill: var(--sheet-2);
+}
+
+.flow-kind,
+.flow-status {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  fill: var(--ink-3);
+}
+
+.flow-status {
+  display: none;
+  fill: var(--red);
+  font-weight: 600;
+}
+
+.flow-title {
+  font-size: 15px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.flow-sub {
+  font-size: 11.5px;
+  fill: var(--ink-3);
+}
+
+.flow-topic {
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--ink);
+}
+
+.flow-node.is-active rect {
+  stroke: var(--accent);
+  stroke-width: 2.25;
+  fill: var(--accent-wash);
+}
+
+.flow-node.is-down {
+  opacity: 0.5;
+}
+
+.flow-node.is-down rect {
+  stroke: var(--red);
+  stroke-dasharray: 5 4;
+  fill: var(--red-wash);
+}
+
+.flow-node.is-down .flow-status {
+  display: block;
+}
+
+/* Two identical keyframes, alternated, so a second arrival at the same box replays the pulse. */
+.flow-node.is-hit-0 rect {
+  animation: flow-hit-a 700ms ease-out;
+}
+
+.flow-node.is-hit-1 rect {
+  animation: flow-hit-b 700ms ease-out;
+}
+
+@keyframes flow-hit-a {
+  from {
+    stroke-width: 4.5;
+  }
+}
+
+@keyframes flow-hit-b {
+  from {
+    stroke-width: 4.5;
+  }
+}
+
+.flow-edge {
+  fill: none;
+  stroke: var(--rule-2);
+  stroke-width: 1.5;
+  transition: stroke 200ms ease;
+}
+
+.flow-edge.is-active {
+  stroke: var(--accent);
+  stroke-width: 2.25;
+}
+
+.flow-edge.is-dashed {
+  stroke-dasharray: 5 4;
+}
+
+.flow-arrowhead {
+  fill: var(--rule-2);
+}
+
+.flow-arrowhead.is-active {
+  fill: var(--accent);
+}
+
+.flow-label {
+  font-size: 11px;
+  fill: var(--ink-3);
+  paint-order: stroke;
+  stroke: var(--sheet);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
+.flow-label.is-active {
+  fill: var(--accent);
+  font-weight: 600;
+}
+
+.flow-packet {
+  fill: var(--accent);
+  stroke: var(--sheet);
+  stroke-width: 2.5;
+}
+
+/* Stacked layers in one grid cell: the container takes the height of the tallest, only the current one is visible. */
+.flow-stack {
+  display: grid;
+}
+
+.flow-stack > * {
+  grid-area: 1 / 1;
+  visibility: hidden;
+}
+
+.flow-stack > .is-current {
+  visibility: visible;
+}
+
+/* Score badge on the diagram */
+
+.flow-score rect {
+  stroke-width: 1.25;
+  transition: fill 300ms ease, stroke 300ms ease;
+}
+
+.flow-score text {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.flow-score__value {
+  font-size: 15px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.flow-score__was {
+  font-weight: 450;
+  opacity: 0.6;
+}
+
+.flow-score__word {
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.flow-score--LOW rect { fill: var(--low-bg); stroke: var(--low-ink); }
+.flow-score--LOW text { fill: var(--low-ink); }
+.flow-score--MEDIUM rect { fill: var(--medium-bg); stroke: var(--medium-ink); }
+.flow-score--MEDIUM text { fill: var(--medium-ink); }
+.flow-score--HIGH rect { fill: var(--high-bg); stroke: var(--high-ink); }
+.flow-score--HIGH text { fill: var(--high-ink); }
+.flow-score--CRITICAL rect { fill: var(--critical-bg); stroke: var(--critical-ink); }
+.flow-score--CRITICAL text { fill: var(--critical-ink); }
+
+/* Page frame */
+
+.how-page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+  background: var(--ground);
+}
+
+.how-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: 10px clamp(16px, 3vw, 32px);
+  background: var(--sheet);
+  border-bottom: 1px solid var(--rule);
+}
+
+.how-bar__title {
+  font-size: var(--t-md);
+  font-weight: 600;
+  padding-left: var(--s-4);
+  border-left: 1px solid var(--rule);
+}
+
+.how-tabs {
+  display: flex;
+  gap: 2px;
+  margin-left: var(--s-2);
+}
+
+.how-tabs button {
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r);
+  background: none;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--ink-3);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.how-tabs button:hover {
+  background: var(--sheet-2);
+  color: var(--ink);
+}
+
+.how-tabs button[aria-selected='true'] {
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+
+.how-bar__back {
+  margin-left: auto;
+}
+
+.how-main {
+  min-height: 0;
+  padding: var(--s-4) clamp(16px, 3vw, 32px);
+}
+
+.how-panel {
+  height: 100%;
+  min-height: 0;
+}
+
+.how-panel[hidden] {
+  display: none;
+}
+
+/* Walkthrough */
+
+.walk {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--s-4);
+  height: 100%;
+  min-height: 0;
+}
+
+.walk__stage {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  min-height: 0;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.walk__diagram,
+.pieces__diagram {
+  margin: 0;
+  padding: var(--s-4) var(--s-4) var(--s-2);
+  min-height: 0;
+  display: grid;
+}
+
+.walk__diagram svg,
+.pieces__diagram svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.walk__caption {
+  padding: var(--s-4) var(--s-5);
+  border-top: 1px solid var(--rule);
+  background: var(--sheet);
+}
+
+.walk__caption > * {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.walk__caption > .is-current {
+  animation: walk-in 320ms var(--ease-out);
+}
+
+@keyframes walk-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.walk__who {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--t-sm);
+  color: var(--ink-3);
+}
+
+.walk__who strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.walk__stepno {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.walk__caption h3 {
+  font-size: var(--t-lg);
+  letter-spacing: -0.01em;
+}
+
+.walk__caption p {
+  max-width: 78ch;
+  color: var(--ink-2);
+  font-size: var(--t-md);
+  line-height: 1.55;
+}
+
+.walk-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 650;
+  color: #fff;
+  background: var(--ink-2);
+}
+
+.walk-avatar--alice { background: var(--accent); }
+.walk-avatar--bob { background: var(--medium-ink); }
+.walk-avatar--carol { background: var(--high-ink); }
+.walk-avatar--dave { background: #3b5a86; }
+.walk-avatar--system {
+  background: var(--sheet-2);
+  color: var(--ink-3);
+  box-shadow: inset 0 0 0 1px var(--rule-2);
+}
+
+.walk__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--s-3) var(--s-5);
+  border-top: 1px solid var(--rule);
+  background: var(--sheet-2);
+}
+
+.walk__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r);
+  background: var(--sheet);
+  font-size: var(--t-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.walk__btn:hover {
+  background: var(--sheet-2);
+}
+
+.walk__btn[disabled] {
+  color: var(--ink-3);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.walk__btn--play {
+  min-width: 124px;
+  padding: 0 14px;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.walk__btn--play:hover {
+  background: var(--accent-hover);
+}
+
+.walk__dots {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 0 0 var(--s-3);
+  padding: 0;
+  list-style: none;
+}
+
+/* A 20px target around a 10px dot. */
+.walk__dot {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.walk__dot::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--rule-2);
+  transition: transform 200ms var(--ease-out), background-color 200ms ease;
+}
+
+.walk__dot.is-done::after {
+  background: var(--ink-3);
+}
+
+.walk__dot[aria-current='step']::after {
+  background: var(--accent);
+  transform: scale(1.4);
+}
+
+.walk__keys {
+  margin-left: auto;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+/* Side panel: the only part that scrolls */
+
+.walk__panel {
+  display: grid;
+  align-content: start;
+  gap: var(--s-5);
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--s-4);
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+}
+
+.walk__panel section {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.walk__panel-title {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.walk__scenarios {
+  display: grid;
+  gap: 4px;
+}
+
+.walk__scenarios button {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.walk__scenarios button:hover {
+  background: var(--sheet-2);
+}
+
+.walk__scenarios button strong {
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+.walk__scenarios button span {
+  display: none;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+
+.walk__scenarios button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.walk__scenarios button[aria-pressed='true'] span {
+  display: block;
+}
+
+.walk__steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+
+.walk__steps button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: var(--r);
+  background: none;
+  text-align: left;
+  font-size: var(--t-sm);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.walk__steps .walk-avatar {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+}
+
+.walk__steps button:hover {
+  background: var(--sheet-2);
+  color: var(--ink);
+}
+
+.walk__steps button.is-done {
+  color: var(--ink-2);
+}
+
+.walk__steps button[aria-current='step'] {
+  background: var(--sheet-2);
+  color: var(--ink);
+  font-weight: 550;
+}
+
+.walk__tech {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+/* Pieces view */
+
+.pieces {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 320px;
+  gap: var(--s-4);
+  height: 100%;
+  min-height: 0;
+}
+
+.pieces__list,
+.pieces__card,
+.pieces__diagram {
+  min-height: 0;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+}
+
+.pieces__list {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: var(--s-2);
+  overflow-y: auto;
+}
+
+.pieces__list button {
+  display: grid;
+  gap: 1px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--r);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pieces__list button:hover {
+  background: var(--sheet-2);
+}
+
+.pieces__list button[aria-selected='true'] {
+  background: var(--accent-wash);
+}
+
+.pieces__list strong {
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+.pieces__kind {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.pieces__card {
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+  padding: var(--s-5);
+  overflow-y: auto;
+}
+
+.pieces__card h2 {
+  font-size: var(--t-xl);
+  letter-spacing: -0.015em;
+}
+
+.pieces__top {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pieces__port {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  color: var(--accent);
+}
+
+.pieces__tech {
+  font-size: var(--t-sm);
+  color: var(--ink-3);
+}
+
+.pieces__card dl {
+  margin: var(--s-3) 0 0;
+  display: grid;
+  gap: var(--s-4);
+}
+
+.pieces__card dt {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.pieces__card dd {
+  margin: 2px 0 0;
+  font-size: var(--t-md);
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+/* Promises */
+
+.how-promises {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-4);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.how-promise {
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+  padding: var(--s-5);
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+}
+
+.how-promise h2 {
+  font-size: var(--t-lg);
+}
+
+.how-promise p {
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+/* Login: the link to this page */
+
+.how-link {
+  justify-self: start;
+  height: 38px;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.how-link:hover {
+  background: var(--accent-wash);
+}
+
+/* Narrow screens: one column, the page scrolls normally and the diagram keeps its shape. */
+
+@media (max-width: 1000px) {
+  .how-page {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .how-bar {
+    flex-wrap: wrap;
+    row-gap: var(--s-2);
+  }
+
+  .how-tabs {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+  }
+
+  .walk,
+  .pieces {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .walk__diagram svg,
+  .pieces__diagram svg {
+    height: auto;
+  }
+
+  .walk__panel,
+  .pieces__list,
+  .pieces__card {
+    overflow: visible;
+  }
+
+  .walk__keys {
+    display: none;
+  }
+
+  .how-promises {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .how-bar__title {
+    display: none;
+  }
+
+  .walk__controls {
+    flex-wrap: wrap;
+    padding: var(--s-3);
+  }
+
+  .walk__caption {
+    padding: var(--s-3);
+  }
+
+  .walk__dots {
+    margin-left: auto;
+  }
+}
+
+/* Who is acting, drawn above the Dashboard box */
+
+.flow-actor {
+  animation: walk-in 320ms var(--ease-out);
+}
+
+.flow-actor rect {
+  fill: var(--sheet);
+  stroke: var(--rule-2);
+  stroke-width: 1.25;
+}
+
+.flow-actor circle {
+  fill: var(--ink-2);
+}
+
+.flow-actor--alice circle { fill: var(--accent); }
+.flow-actor--bob circle { fill: var(--medium-ink); }
+.flow-actor--carol circle { fill: var(--high-ink); }
+.flow-actor--dave circle { fill: #3b5a86; }
+.flow-actor--system circle { fill: var(--sheet-2); stroke: var(--rule-2); }
+
+.flow-actor__line {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+
+.flow-actor__initial {
+  font-size: 13px;
+  font-weight: 650;
+  fill: #fff;
+}
+
+.flow-actor--system .flow-actor__initial {
+  fill: var(--ink-3);
+}
+
+.flow-actor__name {
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.flow-actor__role {
+  font-size: 11px;
+  fill: var(--ink-3);
+}
+
+/* Docker layer: the Compose frame and container states */
+
+.flow-frame rect {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 1.25;
+  stroke-dasharray: 6 5;
+  transition: stroke 300ms ease;
+}
+
+.flow-frame text {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  fill: var(--ink-3);
+}
+
+.flow-frame.is-active rect {
+  stroke: var(--accent);
+}
+
+.flow-frame.is-active text {
+  fill: var(--accent);
+  font-weight: 600;
+}
+
+.flow-node {
+  transition: opacity 300ms ease;
+}
+
+.flow-node.is-off {
+  opacity: 0.35;
+}
+
+.flow-node.is-off .flow-status {
+  display: block;
+  fill: var(--ink-3);
+}
+
+.flow-node.is-healthy .flow-status {
+  display: block;
+  fill: var(--low-ink);
+}
+
+.flow-node.is-healthy:not(.is-active) rect {
+  stroke: var(--low-ink);
+  fill: var(--low-bg);
+}

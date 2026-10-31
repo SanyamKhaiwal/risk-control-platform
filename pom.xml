@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <!-- 4.0.x: Spring Cloud has no GA release train for Boot 4.1 yet (2026.0 is RC). -->
+        <version>4.0.9</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.riskcontrol</groupId>
+    <artifactId>risk-control-platform</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Risk &amp; Control Assessment Platform</name>
+
+    <modules>
+        <module>risk-service</module>
+        <module>control-service</module>
+        <module>gateway</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+        <spring-cloud.version>2025.1.4</spring-cloud.version>
+        <!-- 3.0.x is the springdoc line built for Boot 4.0. -->
+        <springdoc.version>3.0.3</springdoc.version>
+        <lz4-java.version>1.11.4</lz4-java.version>
+        <snappy-java.version>1.1.10.9</snappy-java.version>
+        <!-- Filled in by surefire/dependency plugins; declared so @{argLine} always resolves. -->
+        <argLine></argLine>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+            <!-- Security: newer than the versions kafka-clients brings in (Trivy, docs/security-review.md).
+                 Remove once spring-kafka ships a kafka-clients that depends on these or later. -->
+            <dependency>
+                <groupId>at.yawk.lz4</groupId>
+                <artifactId>lz4-java</artifactId>
+                <version>${lz4-java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.xerial.snappy</groupId>
+                <artifactId>snappy-java</artifactId>
+                <version>${snappy-java.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- spring-boot:run starts from the repo root, like the IDE, so .env and relative key paths resolve the same way. -->
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <workingDirectory>${maven.multiModuleProjectDirectory}</workingDirectory>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <!-- Load Mockito as a Java agent instead of self-attaching, which newer JDKs warn about. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Services run in UTC (see each Application.main); tests do the same. -->
+                    <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar} -Xshare:off -Duser.timezone=UTC</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

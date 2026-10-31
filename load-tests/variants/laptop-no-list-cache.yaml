@@ -1,0 +1,4 @@
+# Load-test variant, used with laptop.yaml: the short-lived list caches turned off, to measure what they save.
+services:
+  risk-service: { environment: { RISK_LISTCACHE_TTL: 0s } }
+  control-service: { environment: { CONTROL_LISTCACHE_TTL: 0s } }

@@ -1,0 +1,372 @@
+# The whole platform on one machine. From the repo root:
+#   docker compose up -d --build --wait                               all 8 containers
+#   docker compose up -d --wait postgres mongo kafka redis            infrastructure only (run the apps from the IDE)
+# Needs .env (copy .env.example) and the dev keys (node scripts/gen-dev-keys.mjs); node scripts/start.mjs does both.
+# Ports bind to loopback only (127.0.0.1 and ::1): these are dev settings and must not be exposed on a network.
+# Both are needed because Windows resolves "localhost" to ::1 first; without it every new connection waits ~2 s.
+# Every container has CPU and memory limits, so load-test results reflect a known budget (≈7.75 CPUs, ≈5 GB).
+
+name: risk-control-platform
+
+# Each Java service is given only the keys it needs, one file at a time (a service never sees another's private key).
+# Monitoring: health, metrics and probes are on a separate management port (9091) that isn't published, so the API
+# ports never serve them; Prometheus scrapes it on the Docker network. Traces go to Tempo, logs are JSON (ECS).
+x-java-service: &java-service
+  restart: unless-stopped
+  environment: &java-env
+    SPRING_PROFILES_ACTIVE: docker
+    JWT_PUBLIC_KEY_PATH: /keys/jwt-public.pem
+    MANAGEMENT_SERVER_PORT: 9091
+    TRACING_EXPORT_ENABLED: "true"
+    OTLP_TRACES_ENDPOINT: http://tempo:4318/v1/traces
+    TRACING_SAMPLE_RATE: ${TRACING_SAMPLE_RATE:-1.0}
+    LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+
+services:
+  # ---------------- Infrastructure ----------------
+
+  postgres:
+    image: postgres:17.11
+    environment:
+      POSTGRES_DB: riskdb
+      POSTGRES_USER: ${DB_USER:-risk}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (copy .env.example)}
+    ports:
+      - "127.0.0.1:5432:5432"
+      - "[::1]:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 512M }
+
+  # Single-node replica set: MongoDB only supports multi-document transactions on a replica set.
+  # Authentication is on (docs/security-review.md SEC-07). A replica set with auth needs a key file for members to
+  # trust each other; with one member a fresh random one per start is enough, made inside the container because
+  # a file mounted from Windows can't get the strict permissions mongod requires.
+  # The healthcheck initiates the replica set and, while no users exist (fresh volume, or data from before auth),
+  # creates them through MongoDB's localhost exception: "admin" (root, used here only) and "control" (read/write on
+  # controldb only, used by the Control Service). It reports healthy once it is primary and can authenticate.
+  mongo:
+    image: mongo:8.0.34
+    entrypoint:
+      - bash
+      - -c
+      - >-
+        head -c 756 /dev/urandom | base64 -w0 > /tmp/keyfile && chmod 400 /tmp/keyfile && chown mongodb /tmp/keyfile &&
+        exec docker-entrypoint.sh mongod --replSet rs0 --keyFile /tmp/keyfile --bind_ip_all --wiredTigerCacheSizeGB 0.5
+    environment:
+      MONGO_ADMIN_PASSWORD: ${MONGO_ADMIN_PASSWORD:?Set MONGO_ADMIN_PASSWORD in .env (node scripts/start.mjs adds it)}
+      MONGO_PASSWORD: ${MONGO_PASSWORD:?Set MONGO_PASSWORD in .env (node scripts/start.mjs adds it)}
+    ports:
+      - "127.0.0.1:27017:27017"
+      - "[::1]:27017:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - >-
+          const admin = db.getSiblingDB('admin');
+          let authed = false;
+          try { authed = admin.auth('admin', process.env.MONGO_ADMIN_PASSWORD).ok === 1 } catch (e) {}
+          try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }) }
+          if (!authed && db.hello().isWritablePrimary) {
+            admin.createUser({ user: 'admin', pwd: process.env.MONGO_ADMIN_PASSWORD, roles: ['root'] });
+            admin.auth('admin', process.env.MONGO_ADMIN_PASSWORD);
+            admin.createUser({ user: 'control', pwd: process.env.MONGO_PASSWORD, roles: [{ role: 'readWrite', db: 'controldb' }] });
+            authed = true;
+          }
+          quit(authed && db.hello().isWritablePrimary ? 0 : 1)
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 1G }
+
+  # Single KRaft node (broker + controller). Two listeners: INTERNAL for other containers (kafka:29092),
+  # EXTERNAL for services running on the host (localhost:9092). Topics are created by the services.
+  # Kafka keeps its data (topics, messages, consumer positions) on a volume: without it, recreating the container
+  # deleted the topics and the running services could no longer publish or consume.
+  kafka:
+    image: apache/kafka:4.3.2
+    environment:
+      CLUSTER_ID: Jbuo3cpotEa8IlHHfETljw
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:29092,EXTERNAL://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    ports:
+      - "127.0.0.1:9092:9092"
+      - "[::1]:9092:9092"
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+    healthcheck:
+      # A plain port check: the Kafka CLI starts a whole JVM, which every 10 s ate most of the 1-CPU budget.
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/9092'"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 15s
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 1G }
+
+  # Cache and rate-limit counters only, so persistence is turned off. Password required (docs/security-review.md SEC-07).
+  redis:
+    image: redis:7.4.12
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "200mb", "--maxmemory-policy", "allkeys-lru",
+              "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env (node scripts/start.mjs adds it)}"]
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    ports:
+      - "127.0.0.1:6379:6379"
+      - "[::1]:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 256M }
+
+  # ---------------- Applications ----------------
+
+  control-service:
+    <<: *java-service
+    build:
+      context: .
+      dockerfile: deploy/docker/java-service.Dockerfile
+      args: { MODULE: control-service }
+    image: risk-control-platform/control-service:local
+    environment:
+      <<: *java-env
+      MONGO_URI: mongodb://control:${MONGO_PASSWORD}@mongo:27017/controldb?replicaSet=rs0&authSource=admin
+      KAFKA_BOOTSTRAP: kafka:29092
+      EVENTS_SIGNING_KEY_PATH: /keys/events-control-private.pem
+      EVENTS_PEER_PUBLIC_KEY_PATH: /keys/events-risk-public.pem
+      ASSESSMENT_CHAIN_KEY_PATH: /keys/assessment-chain.key
+      # One-time re-hash of existing assessment chains with the key: set to true for a single start, then remove.
+      CONTROL_ASSESSMENTS_RESEAL: ${CONTROL_ASSESSMENTS_RESEAL:-false}
+    volumes:
+      - ./deploy/keys/jwt-public.pem:/keys/jwt-public.pem:ro
+      - ./deploy/keys/events-control-private.pem:/keys/events-control-private.pem:ro
+      - ./deploy/keys/events-risk-public.pem:/keys/events-risk-public.pem:ro
+      - ./deploy/keys/assessment-chain.key:/keys/assessment-chain.key:ro
+    ports:
+      - "127.0.0.1:8082:8082"
+      - "[::1]:8082:8082"
+    depends_on:
+      mongo: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    healthcheck: &java-health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/9091 && printf 'GET /actuator/health/readiness HTTP/1.0\r\n\r\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    deploy:
+      resources:
+        limits: { cpus: "1.5", memory: 768M }
+
+  risk-service:
+    <<: *java-service
+    build:
+      context: .
+      dockerfile: deploy/docker/java-service.Dockerfile
+      args: { MODULE: risk-service }
+    image: risk-control-platform/risk-service:local
+    environment:
+      <<: *java-env
+      DB_URL: jdbc:postgresql://postgres:5432/riskdb
+      DB_USER: ${DB_USER:-risk}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (copy .env.example)}
+      KAFKA_BOOTSTRAP: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      CONTROL_SERVICE_URL: http://control-service:8082
+      EVENTS_SIGNING_KEY_PATH: /keys/events-risk-private.pem
+      EVENTS_PEER_PUBLIC_KEY_PATH: /keys/events-control-public.pem
+    volumes:
+      - ./deploy/keys/jwt-public.pem:/keys/jwt-public.pem:ro
+      - ./deploy/keys/events-risk-private.pem:/keys/events-risk-private.pem:ro
+      - ./deploy/keys/events-control-public.pem:/keys/events-control-public.pem:ro
+    ports:
+      - "127.0.0.1:8081:8081"
+      - "[::1]:8081:8081"
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      control-service: { condition: service_healthy }
+    healthcheck:
+      <<: *java-health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/9091 && printf 'GET /actuator/health/readiness HTTP/1.0\r\n\r\n' >&3 && grep -q '\"UP\"' <&3"]
+    deploy:
+      resources:
+        limits: { cpus: "1.5", memory: 768M }
+
+  gateway:
+    <<: *java-service
+    build:
+      context: .
+      dockerfile: deploy/docker/java-service.Dockerfile
+      args: { MODULE: gateway }
+    image: risk-control-platform/gateway:local
+    environment:
+      <<: *java-env
+      JWT_PRIVATE_KEY_PATH: /keys/jwt-private.pem
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      RISK_SERVICE_URL: http://risk-service:8081
+      CONTROL_SERVICE_URL: http://control-service:8082
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+    volumes:
+      - ./deploy/keys/jwt-private.pem:/keys/jwt-private.pem:ro
+      - ./deploy/keys/jwt-public.pem:/keys/jwt-public.pem:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "[::1]:8080:8080"
+    depends_on:
+      redis: { condition: service_healthy }
+      risk-service: { condition: service_healthy }
+      control-service: { condition: service_healthy }
+    healthcheck:
+      <<: *java-health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/9091 && printf 'GET /actuator/health/readiness HTTP/1.0\r\n\r\n' >&3 && grep -q '\"UP\"' <&3"]
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 512M }
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: deploy/docker/dashboard.Dockerfile
+      args: { VITE_API_URL: "http://localhost:8080" }
+    image: risk-control-platform/dashboard:local
+    restart: unless-stopped
+    environment:
+      API_ORIGIN: http://localhost:8080
+      # Size the nginx worker count to the container's CPU limit instead of the host's core count.
+      NGINX_ENTRYPOINT_WORKER_PROCESSES_AUTOTUNE: "1"
+    ports:
+      - "127.0.0.1:5173:8080"
+      - "[::1]:5173:8080"
+    depends_on:
+      gateway: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 64M }
+
+  # ---------------- Monitoring (docs/monitoring.md) ----------------
+
+  # Collects the services' metrics every 5 s and evaluates the alert rules. http://localhost:9090
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+      # Exemplars: sample requests attached to the latency charts, each linked to its trace in Tempo.
+      - --enable-feature=exemplar-storage
+    volumes:
+      - ./deploy/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - promdata:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+      - "[::1]:9090:9090"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 384M }
+
+  # Stores traces sent by the services (OTLP on 4318) for Grafana to show. Not published to the host.
+  tempo:
+    image: grafana/tempo:2.8.2
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo.yml"]
+    volumes:
+      - ./deploy/monitoring/tempo.yml:/etc/tempo.yml:ro
+      - tempodata:/var/tempo
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3200/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 1G }  # 384M ran out under the load test and crash-looped
+
+  # Dashboards, viewable without signing in; changing anything needs the admin password. http://localhost:3000
+  grafana:
+    image: grafana/grafana:12.1.1
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env (node scripts/start.mjs adds it)}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/overview.json
+    volumes:
+      - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafanadata:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+      - "[::1]:3000:3000"
+    depends_on:
+      prometheus: { condition: service_healthy }
+      tempo: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 256M }
+
+volumes:
+  pgdata:
+  mongodata:
+  kafkadata:
+  promdata:
+  tempodata:
+  grafanadata:

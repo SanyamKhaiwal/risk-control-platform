@@ -1,0 +1,555 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-29T15:54:07.121535+00:00",
+  "title": "Design System: Risk & Control Assessment Platform",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Ledger Green",
+        "canonical": "#1d5f52",
+        "tonalRamp": [
+          "oklch(15% 0.05 170)",
+          "oklch(27% 0.05 170)",
+          "oklch(39% 0.05 170)",
+          "oklch(51% 0.05 170)",
+          "oklch(63% 0.05 170)",
+          "oklch(75% 0.05 170)",
+          "oklch(86% 0.05 170)",
+          "oklch(95% 0.05 170)"
+        ]
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Deep Ledger Green",
+        "canonical": "#164a40",
+        "tonalRamp": [
+          "oklch(15% 0.05 170)",
+          "oklch(27% 0.05 170)",
+          "oklch(39% 0.05 170)",
+          "oklch(51% 0.05 170)",
+          "oklch(63% 0.05 170)",
+          "oklch(75% 0.05 170)",
+          "oklch(86% 0.05 170)",
+          "oklch(95% 0.05 170)"
+        ]
+      },
+      "accent-wash": {
+        "role": "primary",
+        "displayName": "Ledger Wash",
+        "canonical": "#e2eeea",
+        "tonalRamp": [
+          "oklch(15% 0.05 170)",
+          "oklch(27% 0.05 170)",
+          "oklch(39% 0.05 170)",
+          "oklch(51% 0.05 170)",
+          "oklch(63% 0.05 170)",
+          "oklch(75% 0.05 170)",
+          "oklch(86% 0.05 170)",
+          "oklch(95% 0.05 170)"
+        ]
+      },
+      "red": {
+        "role": "secondary",
+        "displayName": "Red Ink",
+        "canonical": "#b42318",
+        "tonalRamp": [
+          "oklch(15% 0.14 28)",
+          "oklch(27% 0.14 28)",
+          "oklch(39% 0.14 28)",
+          "oklch(51% 0.14 28)",
+          "oklch(63% 0.14 28)",
+          "oklch(75% 0.14 28)",
+          "oklch(86% 0.14 28)",
+          "oklch(95% 0.14 28)"
+        ]
+      },
+      "red-wash": {
+        "role": "secondary",
+        "displayName": "Red Wash",
+        "canonical": "#fbeae8",
+        "tonalRamp": [
+          "oklch(15% 0.14 28)",
+          "oklch(27% 0.14 28)",
+          "oklch(39% 0.14 28)",
+          "oklch(51% 0.14 28)",
+          "oklch(63% 0.14 28)",
+          "oklch(75% 0.14 28)",
+          "oklch(86% 0.14 28)",
+          "oklch(95% 0.14 28)"
+        ]
+      },
+      "low-bg": {
+        "role": "tertiary",
+        "displayName": "Low Wash",
+        "canonical": "#e3f0e8",
+        "tonalRamp": [
+          "oklch(15% 0.06 150)",
+          "oklch(27% 0.06 150)",
+          "oklch(39% 0.06 150)",
+          "oklch(51% 0.06 150)",
+          "oklch(63% 0.06 150)",
+          "oklch(75% 0.06 150)",
+          "oklch(86% 0.06 150)",
+          "oklch(95% 0.06 150)"
+        ]
+      },
+      "low-ink": {
+        "role": "tertiary",
+        "displayName": "Low Ink",
+        "canonical": "#1d5638",
+        "tonalRamp": [
+          "oklch(15% 0.06 150)",
+          "oklch(27% 0.06 150)",
+          "oklch(39% 0.06 150)",
+          "oklch(51% 0.06 150)",
+          "oklch(63% 0.06 150)",
+          "oklch(75% 0.06 150)",
+          "oklch(86% 0.06 150)",
+          "oklch(95% 0.06 150)"
+        ]
+      },
+      "medium-bg": {
+        "role": "tertiary",
+        "displayName": "Medium Wash",
+        "canonical": "#f6efd6",
+        "tonalRamp": [
+          "oklch(15% 0.08 90)",
+          "oklch(27% 0.08 90)",
+          "oklch(39% 0.08 90)",
+          "oklch(51% 0.08 90)",
+          "oklch(63% 0.08 90)",
+          "oklch(75% 0.08 90)",
+          "oklch(86% 0.08 90)",
+          "oklch(95% 0.08 90)"
+        ]
+      },
+      "medium-ink": {
+        "role": "tertiary",
+        "displayName": "Medium Ink",
+        "canonical": "#664c08",
+        "tonalRamp": [
+          "oklch(15% 0.08 90)",
+          "oklch(27% 0.08 90)",
+          "oklch(39% 0.08 90)",
+          "oklch(51% 0.08 90)",
+          "oklch(63% 0.08 90)",
+          "oklch(75% 0.08 90)",
+          "oklch(86% 0.08 90)",
+          "oklch(95% 0.08 90)"
+        ]
+      },
+      "high-bg": {
+        "role": "tertiary",
+        "displayName": "High Wash",
+        "canonical": "#fae2d2",
+        "tonalRamp": [
+          "oklch(15% 0.1 50)",
+          "oklch(27% 0.1 50)",
+          "oklch(39% 0.1 50)",
+          "oklch(51% 0.1 50)",
+          "oklch(63% 0.1 50)",
+          "oklch(75% 0.1 50)",
+          "oklch(86% 0.1 50)",
+          "oklch(95% 0.1 50)"
+        ]
+      },
+      "high-ink": {
+        "role": "tertiary",
+        "displayName": "High Ink",
+        "canonical": "#863710",
+        "tonalRamp": [
+          "oklch(15% 0.1 50)",
+          "oklch(27% 0.1 50)",
+          "oklch(39% 0.1 50)",
+          "oklch(51% 0.1 50)",
+          "oklch(63% 0.1 50)",
+          "oklch(75% 0.1 50)",
+          "oklch(86% 0.1 50)",
+          "oklch(95% 0.1 50)"
+        ]
+      },
+      "critical-bg": {
+        "role": "tertiary",
+        "displayName": "Critical Wash",
+        "canonical": "#f5d3cf",
+        "tonalRamp": [
+          "oklch(15% 0.14 28)",
+          "oklch(27% 0.14 28)",
+          "oklch(39% 0.14 28)",
+          "oklch(51% 0.14 28)",
+          "oklch(63% 0.14 28)",
+          "oklch(75% 0.14 28)",
+          "oklch(86% 0.14 28)",
+          "oklch(95% 0.14 28)"
+        ]
+      },
+      "critical-ink": {
+        "role": "tertiary",
+        "displayName": "Critical Ink",
+        "canonical": "#8b1a12",
+        "tonalRamp": [
+          "oklch(15% 0.14 28)",
+          "oklch(27% 0.14 28)",
+          "oklch(39% 0.14 28)",
+          "oklch(51% 0.14 28)",
+          "oklch(63% 0.14 28)",
+          "oklch(75% 0.14 28)",
+          "oklch(86% 0.14 28)",
+          "oklch(95% 0.14 28)"
+        ]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Cool Ground",
+        "canonical": "#f4f6f5",
+        "tonalRamp": [
+          "oklch(15% 0.008 160)",
+          "oklch(27% 0.008 160)",
+          "oklch(39% 0.008 160)",
+          "oklch(51% 0.008 160)",
+          "oklch(63% 0.008 160)",
+          "oklch(75% 0.008 160)",
+          "oklch(86% 0.008 160)",
+          "oklch(95% 0.008 160)"
+        ]
+      },
+      "sheet": {
+        "role": "neutral",
+        "displayName": "Sheet White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.008 160)",
+          "oklch(27% 0.008 160)",
+          "oklch(39% 0.008 160)",
+          "oklch(51% 0.008 160)",
+          "oklch(63% 0.008 160)",
+          "oklch(75% 0.008 160)",
+          "oklch(86% 0.008 160)",
+          "oklch(95% 0.008 160)"
+        ]
+      },
+      "sheet-2": {
+        "role": "neutral",
+        "displayName": "Second Sheet",
+        "canonical": "#f0f3f1",
+        "tonalRamp": [
+          "oklch(15% 0.008 160)",
+          "oklch(27% 0.008 160)",
+          "oklch(39% 0.008 160)",
+          "oklch(51% 0.008 160)",
+          "oklch(63% 0.008 160)",
+          "oklch(75% 0.008 160)",
+          "oklch(86% 0.008 160)",
+          "oklch(95% 0.008 160)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e0e5e2",
+        "tonalRamp": [
+          "oklch(15% 0.008 160)",
+          "oklch(27% 0.008 160)",
+          "oklch(39% 0.008 160)",
+          "oklch(51% 0.008 160)",
+          "oklch(63% 0.008 160)",
+          "oklch(75% 0.008 160)",
+          "oklch(86% 0.008 160)",
+          "oklch(95% 0.008 160)"
+        ]
+      },
+      "rule-2": {
+        "role": "neutral",
+        "displayName": "Firm Rule",
+        "canonical": "#c6cecb",
+        "tonalRamp": [
+          "oklch(15% 0.008 160)",
+          "oklch(27% 0.008 160)",
+          "oklch(39% 0.008 160)",
+          "oklch(51% 0.008 160)",
+          "oklch(63% 0.008 160)",
+          "oklch(75% 0.008 160)",
+          "oklch(86% 0.008 160)",
+          "oklch(95% 0.008 160)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#111917",
+        "tonalRamp": [
+          "oklch(15% 0.008 160)",
+          "oklch(27% 0.008 160)",
+          "oklch(39% 0.008 160)",
+          "oklch(51% 0.008 160)",
+          "oklch(63% 0.008 160)",
+          "oklch(75% 0.008 160)",
+          "oklch(86% 0.008 160)",
+          "oklch(95% 0.008 160)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "#44504c",
+        "tonalRamp": [
+          "oklch(15% 0.008 160)",
+          "oklch(27% 0.008 160)",
+          "oklch(39% 0.008 160)",
+          "oklch(51% 0.008 160)",
+          "oklch(63% 0.008 160)",
+          "oklch(75% 0.008 160)",
+          "oklch(86% 0.008 160)",
+          "oklch(95% 0.008 160)"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "#5f6b67",
+        "tonalRamp": [
+          "oklch(15% 0.008 160)",
+          "oklch(27% 0.008 160)",
+          "oklch(39% 0.008 160)",
+          "oklch(51% 0.008 160)",
+          "oklch(63% 0.008 160)",
+          "oklch(75% 0.008 160)",
+          "oklch(86% 0.008 160)",
+          "oklch(95% 0.008 160)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page title (h1) only."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Score equation on risk detail; tabular."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Sheet titles (h2)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default UI text."
+      },
+      "dense": {
+        "displayName": "Dense",
+        "purpose": "Tables, buttons, inputs, notices."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Table heads, badges, hints, axis labels; sentence case."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Hashes and event ids only."
+      }
+    },
+    "shadows": [
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 3px rgb(29 95 82 / 0.28)",
+        "purpose": "Focus on every interactive element."
+      },
+      {
+        "name": "cell-hover",
+        "value": "inset 0 0 0 1px color-mix(in srgb, var(--band-ink) 45%, transparent)",
+        "purpose": "Interactive matrix cell hover."
+      },
+      {
+        "name": "cell-selected",
+        "value": "inset 0 0 0 2px var(--ink)",
+        "purpose": "Selected matrix cell."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Posting strike, post-in and row/cell flash."
+      },
+      {
+        "name": "state-fade",
+        "value": "150ms ease",
+        "purpose": "Hover/focus colour, border and shadow transitions."
+      },
+      {
+        "name": "posting",
+        "value": "strike 280ms; post-in 360ms after 220ms; old fades at 1700ms; cleared at 2100ms; row flash 2400ms; cell pulse 2200ms",
+        "purpose": "The one authored motion."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation and transition durations 0.01ms",
+        "purpose": "prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "760px"
+      },
+      {
+        "name": "login-stack",
+        "value": "900px"
+      },
+      {
+        "name": "md",
+        "value": "1000px"
+      },
+      {
+        "name": "table-md",
+        "value": "1100px"
+      },
+      {
+        "name": "page-max",
+        "value": "1440px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main action in a header or form.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Record assessment</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:var(--r,6px);border:1px solid var(--rule-2,#c6cecb);background:var(--sheet,#fff);color:var(--ink,#111917);font:500 0.8125rem 'Geist Variable',system-ui,sans-serif;cursor:pointer;transition:background-color 150ms ease,border-color 150ms ease,color 150ms ease}.ds-btn:hover{background:var(--sheet-2,#f0f3f1)}.ds-btn:active{transform:translateY(0.5px)}.ds-btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(29 95 82 / 0.28)}.ds-btn-primary{background:var(--accent,#1d5f52);border-color:var(--accent,#1d5f52);color:#fff}.ds-btn-primary:hover{background:var(--accent-hover,#164a40);border-color:var(--accent-hover,#164a40)}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Default button.",
+      "html": "<button class=\"ds-btn\">Edit</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:var(--r,6px);border:1px solid var(--rule-2,#c6cecb);background:var(--sheet,#fff);color:var(--ink,#111917);font:500 0.8125rem 'Geist Variable',system-ui,sans-serif;cursor:pointer;transition:background-color 150ms ease,border-color 150ms ease,color 150ms ease}.ds-btn:hover{background:var(--sheet-2,#f0f3f1)}.ds-btn:active{transform:translateY(0.5px)}.ds-btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(29 95 82 / 0.28)}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Low-emphasis action.",
+      "html": "<button class=\"ds-btn ds-btn-ghost\">Clear</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:var(--r,6px);border:1px solid var(--rule-2,#c6cecb);background:var(--sheet,#fff);color:var(--ink,#111917);font:500 0.8125rem 'Geist Variable',system-ui,sans-serif;cursor:pointer;transition:background-color 150ms ease,border-color 150ms ease,color 150ms ease}.ds-btn:hover{background:var(--sheet-2,#f0f3f1)}.ds-btn:active{transform:translateY(0.5px)}.ds-btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(29 95 82 / 0.28)}.ds-btn-ghost{border-color:transparent;background:transparent;color:var(--ink-2,#44504c)}.ds-btn-ghost:hover{background:var(--sheet-2,#f0f3f1);color:var(--ink,#111917)}"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive action such as unlink.",
+      "html": "<button class=\"ds-btn ds-btn-danger\">Unlink</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:var(--r,6px);border:1px solid var(--rule-2,#c6cecb);background:var(--sheet,#fff);color:var(--ink,#111917);font:500 0.8125rem 'Geist Variable',system-ui,sans-serif;cursor:pointer;transition:background-color 150ms ease,border-color 150ms ease,color 150ms ease}.ds-btn:hover{background:var(--sheet-2,#f0f3f1)}.ds-btn:active{transform:translateY(0.5px)}.ds-btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(29 95 82 / 0.28)}.ds-btn-danger{color:var(--red,#b42318);border-color:#e7b9b4}.ds-btn-danger:hover{background:var(--red-wash,#fbeae8)}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Field with label above.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-label\">Title</span><input class=\"ds-input\" placeholder=\"Risk title\"></label>",
+      "css": ".ds-field{display:grid;gap:6px;font-family:'Geist Variable',system-ui,sans-serif}.ds-label{font-size:0.8125rem;font-weight:500;color:var(--ink-2,#44504c)}.ds-input{min-height:34px;padding:6px 10px;border:1px solid var(--rule-2,#c6cecb);border-radius:6px;background:#fff;font:inherit;font-size:0.8125rem;transition:border-color 150ms ease,box-shadow 150ms ease}.ds-input:hover{border-color:var(--ink-3,#5f6b67)}.ds-input:focus{outline:none;border-color:var(--accent,#1d5f52);box-shadow:0 0 0 3px rgb(29 95 82 / 0.28)}"
+    },
+    {
+      "name": "Rating Badges",
+      "kind": "chip",
+      "refersTo": "badge-rating-high",
+      "description": "Rating wash always with word and score.",
+      "html": "<span class=\"ds-badge ds-low\">Low 4</span> <span class=\"ds-badge ds-med\">Medium 9</span> <span class=\"ds-badge ds-high\">High 15</span> <span class=\"ds-badge ds-crit\">Critical 20</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:11px;font:500 0.75rem 'Geist Variable',system-ui,sans-serif;font-variant-numeric:tabular-nums}.ds-low{background:#e3f0e8;color:#1d5638}.ds-med{background:#f6efd6;color:#664c08}.ds-high{background:#fae2d2;color:#863710}.ds-crit{background:#f5d3cf;color:#8b1a12}"
+    },
+    {
+      "name": "Top Navigation",
+      "kind": "nav",
+      "refersTo": "topbar",
+      "description": "Sticky white bar; current item underlined in accent; red re-test count.",
+      "html": "<nav class=\"ds-nav\"><a aria-current=\"page\">Overview</a><a>Register</a><a>Controls</a><a>Re-test <span class=\"ds-count\">3</span></a></nav>",
+      "css": ".ds-nav{display:flex;height:56px;gap:4px;background:#fff;border-bottom:1px solid var(--rule,#e0e5e2);font:500 0.875rem 'Geist Variable',system-ui,sans-serif}.ds-nav a{position:relative;display:flex;align-items:center;gap:6px;padding:0 12px;color:var(--ink-3,#5f6b67);cursor:pointer;transition:color 150ms ease}.ds-nav a:hover,.ds-nav a[aria-current=page]{color:var(--ink,#111917)}.ds-nav a[aria-current=page]::after{content:'';position:absolute;left:12px;right:12px;bottom:-1px;height:2px;border-radius:2px 2px 0 0;background:var(--accent,#1d5f52)}.ds-count{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red,#b42318);color:#fff;font-size:11px;font-weight:600;line-height:18px;text-align:center}"
+    },
+    {
+      "name": "Sheet",
+      "kind": "card",
+      "refersTo": "sheet",
+      "description": "Ruled white section; no shadow.",
+      "html": "<section class=\"ds-sheet\"><div class=\"ds-sheet-head\"><div><h2>Highest residual risks</h2><p>Top 10 by residual score</p></div></div><div class=\"ds-sheet-body\">Ruled content</div></section>",
+      "css": ".ds-sheet{background:#fff;border:1px solid var(--rule,#e0e5e2);border-radius:8px;font-family:'Geist Variable',system-ui,sans-serif;font-size:0.875rem}.ds-sheet-head{min-height:52px;padding:12px 16px;border-bottom:1px solid var(--rule,#e0e5e2);display:flex;align-items:center}.ds-sheet-head h2{margin:0;font-size:1rem;font-weight:600}.ds-sheet-head p{margin:2px 0 0;font-size:0.8125rem;color:var(--ink-3,#5f6b67)}.ds-sheet-body{padding:16px}"
+    },
+    {
+      "name": "Posted Figure",
+      "kind": "custom",
+      "refersTo": "posted",
+      "description": "Signature motion: old figure struck in red, new figure posted beside it.",
+      "html": "<span class=\"ds-posted\"><s class=\"ds-was\">16</s><span class=\"ds-now\">9</span></span>",
+      "css": ".ds-posted{display:inline-flex;align-items:baseline;gap:0.4em;font:600 1.75rem 'Geist Variable',system-ui,sans-serif;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}.ds-was{position:relative;text-decoration:none;color:#5f6b67;animation:ds-leave 360ms ease 1700ms forwards}.ds-was::after{content:'';position:absolute;left:-0.12em;right:-0.12em;top:55%;height:max(1.5px,0.09em);background:#b42318;transform:scaleX(0);transform-origin:left center;animation:ds-strike 280ms cubic-bezier(0.16,1,0.3,1) forwards}.ds-now{display:inline-block;animation:ds-in 360ms cubic-bezier(0.16,1,0.3,1) 220ms both}@keyframes ds-strike{to{transform:scaleX(1)}}@keyframes ds-in{from{opacity:0;transform:translateY(0.3em);filter:blur(2px)}to{opacity:1;transform:none;filter:none}}@keyframes ds-leave{to{opacity:0}}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "custom",
+      "refersTo": "segmented-selected",
+      "description": "Radio group for likelihood/impact 1-5; selected is solid ink.",
+      "html": "<div class=\"ds-seg\" role=\"radiogroup\"><button>1</button><button>2</button><button aria-checked=\"true\">3</button><button>4</button><button>5</button></div>",
+      "css": ".ds-seg{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--rule-2,#c6cecb);border-radius:6px;background:#fff}.ds-seg button{min-width:34px;height:28px;padding:0 10px;border:0;border-radius:4px;background:transparent;color:var(--ink-2,#44504c);font:500 0.8125rem 'Geist Variable',system-ui,sans-serif;font-variant-numeric:tabular-nums;cursor:pointer;transition:background-color 150ms ease,color 150ms ease}.ds-seg button:hover{background:var(--sheet-2,#f0f3f1);color:var(--ink,#111917)}.ds-seg button[aria-checked=true]{background:var(--ink,#111917);color:#fff}.ds-seg button:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(29 95 82 / 0.28)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Modern Ledger",
+    "overview": "A risk register kept like a ledger, not a dashboard template. Figures are posted, never silently overwritten: when a residual score changes, the old figure is struck through in red ink and the new one is posted beside it, on the heat-map cells and in every row that shows a score. The rest of the system stays quiet so that one movement reads.\n\nThe world is a cool, bright ground with white sheets divided by 1px rules. There are no cards-with-shadows, no gradients, no dark mode (light only, chosen for office desktops and projectors in bright rooms). One sans (Geist) carries everything with tabular figures; one ledger-green accent marks actions, the current location and focus; red ink is reserved for adverse movement and destructive actions; four pale rating washes are always paired with the rating word or score. Density is high and fixed: a practitioner scans both 5x5 matrices and the register without scrolling through chrome.",
+    "keyCharacteristics": [
+      "Light-only, flat, ruled: depth comes from tonal layers and 1px rules, not shadows.",
+      "One sans family with tabular numerals; mono only for hashes and event ids.",
+      "One accent (green) for action; red only for adverse; rating washes never stand alone.",
+      "One authored motion: posting a figure. Everything else is a 150ms state fade."
+    ],
+    "rules": [
+      {
+        "name": "The One Voice Rule",
+        "body": "Ledger Green appears only on things you can act on, the current nav item, focus and the live/effective signals. Never as decoration or a heading colour. Selection inside a control (segmented option, matrix cell) is solid ink, not green.",
+        "section": "colors"
+      },
+      {
+        "name": "The Red Ink Rule",
+        "body": "Red marks adverse risk movement, failures and destructive actions. It never decorates.",
+        "section": "colors"
+      },
+      {
+        "name": "The Word-With-Wash Rule",
+        "body": "A rating colour never appears without its rating word or numeric score beside or inside it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every number that can change or be compared (scores, counts, pager totals, axis numbers) is set with tabular figures and right-aligned in tables.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sentence-Case Rule",
+        "body": "Labels and table heads are sentence case at 500 weight; nothing is set in tracked uppercase (the avatar initial is the only uppercase).",
+        "section": "typography"
+      },
+      {
+        "name": "The Rules-Not-Shadows Rule",
+        "body": "Sections separate by 1px rules and tonal layers. A shadow means focus or state, never altitude.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** use the posted-figure treatment for any score or count that changes live; it is the system's only authored motion.",
+      "**Do** pair every rating wash with its word or score, in cells, badges and the legend.",
+      "**Do** separate content with 1px `rule` hairlines and the ground / sheet / sheet-2 layers.",
+      "**Do** set changeable numbers tabular and right-aligned.",
+      "**Do** keep transitions on hover and focus to 150ms colour, border or shadow fades.",
+      "**Do** mark synthetic data with the dashed \"demo data\" tag."
+    ],
+    "donts": [
+      "**Don't** add resting shadows, gradients, glows or a dark theme.",
+      "**Don't** use Ledger Green for anything that isn't an action, the current location, focus or a positive result.",
+      "**Don't** use red for decoration or neutral emphasis.",
+      "**Don't** add a sidebar, stat-card rows or chart widgets; the matrices and ruled tables are the dashboard.",
+      "**Don't** introduce a second display or text face; Geist Mono stays limited to hashes and ids.",
+      "**Don't** set labels in tracked uppercase."
+    ]
+  }
+}

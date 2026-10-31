@@ -1,0 +1,62 @@
+/* Design tokens. Light only: the use scene is office desktops and meeting-room projectors in bright light. */
+:root {
+  /* Surfaces: a cool bright ground, white sheets, a second neutral layer for bars and table heads. */
+  --ground: #f4f6f5;
+  --sheet: #ffffff;
+  --sheet-2: #f0f3f1;
+  --rule: #e0e5e2;
+  --rule-2: #c6cecb;
+
+  /* Ink. --ink-3 is the lightest text allowed on white (≈5:1). */
+  --ink: #111917;
+  --ink-2: #44504c;
+  --ink-3: #5f6b67;
+
+  /* One accent, for actions, selection and focus only. */
+  --accent: #1d5f52;
+  --accent-hover: #164a40;
+  --accent-wash: #e2eeea;
+  --focus-ring: 0 0 0 3px rgb(29 95 82 / 0.28);
+
+  /* Red ink: adverse movement and destructive actions only. */
+  --red: #b42318;
+  --red-wash: #fbeae8;
+
+  /* Rating washes. Always paired with the rating word or score, never colour alone. */
+  --low-bg: #e3f0e8;
+  --low-ink: #1d5638;
+  --medium-bg: #f6efd6;
+  --medium-ink: #664c08;
+  --high-bg: #fae2d2;
+  --high-ink: #863710;
+  --critical-bg: #f5d3cf;
+  --critical-ink: #8b1a12;
+
+  --font: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'Geist Mono Variable', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  /* Fixed rem scale, ratio ≈1.15–1.25 (product UI, not fluid). */
+  --t-xs: 0.75rem;
+  --t-sm: 0.8125rem;
+  --t-md: 0.875rem;
+  --t-base: 1rem;
+  --t-lg: 1.125rem;
+  --t-xl: 1.5rem;
+  --t-2xl: 1.75rem;
+
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  --r-sm: 4px;
+  --r: 6px;
+  --r-lg: 4px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-pop: 0 12px 32px -8px rgb(17 25 23 / 0.18), 0 2px 6px rgb(17 25 23 / 0.06);
+  --page-max: 1440px;
+}

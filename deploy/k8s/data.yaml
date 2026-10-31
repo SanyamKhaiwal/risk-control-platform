@@ -1,0 +1,185 @@
+# Data stores: PostgreSQL (Risk Service), MongoDB (Control Service), Kafka and Redis. Each keeps its data on a
+# persistent volume (StatefulSet), reads its passwords from the rcp-secrets Secret (made by scripts/k8s.mjs from
+# .env), and is reachable only by the services that use it (networkpolicies.yaml).
+apiVersion: v1
+kind: Service
+metadata: { name: postgres }
+spec:
+  selector: { app: postgres }
+  ports: [{ port: 5432 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: postgres }
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata: { labels: { app: postgres } }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17.11
+          env:
+            - { name: POSTGRES_DB, value: riskdb }
+            - { name: POSTGRES_USER, value: risk }
+            - { name: POSTGRES_PASSWORD, valueFrom: { secretKeyRef: { name: rcp-secrets, key: DB_PASSWORD } } }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          ports: [{ containerPort: 5432 }]
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "risk", "-d", "riskdb"] }
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          volumeMounts: [{ name: data, mountPath: /var/lib/postgresql/data }]
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec: { accessModes: [ReadWriteOnce], resources: { requests: { storage: 1Gi } } }
+---
+# Headless, and published before ready: the replica set member names itself "mongo:27017" while initiating.
+apiVersion: v1
+kind: Service
+metadata: { name: mongo }
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector: { app: mongo }
+  ports: [{ port: 27017 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: mongo }
+spec:
+  serviceName: mongo
+  replicas: 1
+  selector: { matchLabels: { app: mongo } }
+  template:
+    metadata: { labels: { app: mongo } }
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:8.0.34
+          # As in compose.yaml: a replica set (for transactions) with authentication; the key file is made here.
+          command:
+            - bash
+            - -c
+            - >-
+              head -c 756 /dev/urandom | base64 -w0 > /tmp/keyfile && chmod 400 /tmp/keyfile && chown mongodb /tmp/keyfile &&
+              exec docker-entrypoint.sh mongod --replSet rs0 --keyFile /tmp/keyfile --bind_ip_all --wiredTigerCacheSizeGB 0.25
+          env:
+            - { name: MONGO_ADMIN_PASSWORD, valueFrom: { secretKeyRef: { name: rcp-secrets, key: MONGO_ADMIN_PASSWORD } } }
+            - { name: MONGO_PASSWORD, valueFrom: { secretKeyRef: { name: rcp-secrets, key: MONGO_PASSWORD } } }
+          ports: [{ containerPort: 27017 }]
+          # Same script as the compose healthcheck: initiates the replica set and creates the users on first start.
+          readinessProbe:
+            periodSeconds: 5
+            timeoutSeconds: 10
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - >-
+                  const admin = db.getSiblingDB('admin');
+                  let authed = false;
+                  try { authed = admin.auth('admin', process.env.MONGO_ADMIN_PASSWORD).ok === 1 } catch (e) {}
+                  try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }) }
+                  if (!authed && db.hello().isWritablePrimary) {
+                    admin.createUser({ user: 'admin', pwd: process.env.MONGO_ADMIN_PASSWORD, roles: ['root'] });
+                    admin.auth('admin', process.env.MONGO_ADMIN_PASSWORD);
+                    admin.createUser({ user: 'control', pwd: process.env.MONGO_PASSWORD, roles: [{ role: 'readWrite', db: 'controldb' }] });
+                    authed = true;
+                  }
+                  quit(authed && db.hello().isWritablePrimary ? 0 : 1)
+          resources:
+            requests: { cpu: 100m, memory: 384Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          volumeMounts: [{ name: data, mountPath: /data/db }]
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec: { accessModes: [ReadWriteOnce], resources: { requests: { storage: 1Gi } } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: kafka }
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector: { app: kafka }
+  ports: [{ name: internal, port: 29092 }, { name: controller, port: 9093 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: kafka }
+spec:
+  serviceName: kafka
+  replicas: 1
+  selector: { matchLabels: { app: kafka } }
+  template:
+    metadata: { labels: { app: kafka } }
+    spec:
+      containers:
+        - name: kafka
+          image: apache/kafka:4.3.2
+          env:
+            - { name: CLUSTER_ID, value: Jbuo3cpotEa8IlHHfETljw }
+            - { name: KAFKA_NODE_ID, value: "1" }
+            - { name: KAFKA_PROCESS_ROLES, value: "broker,controller" }
+            - { name: KAFKA_LISTENERS, value: "INTERNAL://:29092,CONTROLLER://:9093" }
+            - { name: KAFKA_ADVERTISED_LISTENERS, value: "INTERNAL://kafka:29092" }
+            - { name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP, value: "INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT" }
+            - { name: KAFKA_INTER_BROKER_LISTENER_NAME, value: INTERNAL }
+            - { name: KAFKA_CONTROLLER_LISTENER_NAMES, value: CONTROLLER }
+            - { name: KAFKA_CONTROLLER_QUORUM_VOTERS, value: "1@localhost:9093" }
+            - { name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR, value: "1" }
+            - { name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR, value: "1" }
+            - { name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR, value: "1" }
+            - { name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS, value: "0" }
+            - { name: KAFKA_AUTO_CREATE_TOPICS_ENABLE, value: "false" }
+            - { name: KAFKA_NUM_PARTITIONS, value: "3" }
+            - { name: KAFKA_HEAP_OPTS, value: "-Xms256m -Xmx512m" }
+            - { name: KAFKA_LOG_DIRS, value: /var/lib/kafka/data }
+          ports: [{ containerPort: 29092 }, { containerPort: 9093 }]
+          readinessProbe:
+            tcpSocket: { port: 29092 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 512Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts: [{ name: data, mountPath: /var/lib/kafka/data }]
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec: { accessModes: [ReadWriteOnce], resources: { requests: { storage: 1Gi } } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: redis }
+spec:
+  selector: { app: redis }
+  ports: [{ port: 6379 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: redis }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: redis } }
+  template:
+    metadata: { labels: { app: redis } }
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4.12
+          command: ["sh", "-c", "exec redis-server --save '' --appendonly no --maxmemory 200mb --maxmemory-policy allkeys-lru --requirepass \"$REDIS_PASSWORD\""]
+          env:
+            - { name: REDIS_PASSWORD, valueFrom: { secretKeyRef: { name: rcp-secrets, key: REDIS_PASSWORD } } }
+            - { name: REDISCLI_AUTH, valueFrom: { secretKeyRef: { name: rcp-secrets, key: REDIS_PASSWORD } } }
+          ports: [{ containerPort: 6379 }]
+          readinessProbe:
+            exec: { command: ["redis-cli", "ping"] }
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }

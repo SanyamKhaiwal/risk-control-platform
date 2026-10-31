@@ -1,0 +1,25 @@
+# Private notes (career framing, interview prep)
+docs/private/
+
+# Secrets and local keys
+.env
+deploy/keys/
+
+# Build output
+target/
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# TypeScript incremental build state
+*.tsbuildinfo
+
+# Security scan output (bash security/scan.sh, security/zap.sh)
+security/reports/
+
+# Load test output (load-tests/run.mjs): tokens and results
+load-tests/out/
