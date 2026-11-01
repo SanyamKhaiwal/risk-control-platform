@@ -7,9 +7,9 @@ A working risk-management (GRC) system built as event-driven microservices: Java
 [![CI](https://github.com/SanyamKhaiwal/risk-control-platform/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/SanyamKhaiwal/risk-control-platform/actions/workflows/ci.yml)
 [![Kubernetes](https://github.com/SanyamKhaiwal/risk-control-platform/actions/workflows/k8s.yml/badge.svg?branch=main&event=push)](https://github.com/SanyamKhaiwal/risk-control-platform/actions/workflows/k8s.yml)
 
-[![Watch the 28-second showcase](docs/media/showcase-poster.jpg)](https://github.com/SanyamKhaiwal/risk-control-platform/releases/download/v1.0.0/risk-control-showcase.mp4)
+https://github.com/user-attachments/assets/e5b378e1-40d8-4058-9c49-b2bf5bb20458
 
-<sub>▶ Click to watch the 28-second showcase (sound on). Music: "Karma" from Mixkit; voice: Kokoro TTS.</sub>
+<sub>28-second showcase, sound on. Music: "Karma" from Mixkit; voice: Kokoro TTS. Full quality: [v1.0.0 release](https://github.com/SanyamKhaiwal/risk-control-platform/releases/download/v1.0.0/risk-control-showcase.mp4).</sub>
 
 ## Why it exists
 
