@@ -70,7 +70,7 @@ On the same laptop as the load tests (i5-11300H, 4 cores; Docker Desktop VM with
 
 | Check | Result |
 |---|---|
-| Pods | 10/10 ready, 0 restarts |
+| Pods | 10/10 ready; none restarted during the checks (a service may restart once at start-up if its database is still starting) |
 | HTTPS edge | dashboard 200 with HSTS and CSP; API without token 401; sign-in and register read through the edge; 300 KB body 413; plain HTTP on the TLS port redirected to HTTPS (301) |
 | Network policies | a pod that isn't part of the platform reaches **none** of postgres, mongo, kafka, redis, risk-service, control-service, gateway, but does reach the edge (so the probe works); the edge reaches the gateway but not postgres, kafka or risk-service. 13/13 |
 | Rolling restart of every Gateway, 40 viewers reading without pause | **9,744 requests, 0 failed** (52 s) |

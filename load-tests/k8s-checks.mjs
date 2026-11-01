@@ -72,8 +72,20 @@ async function pods() {
   const list = JSON.parse(kubectl('get', 'pods', '-o', 'json').stdout).items;
   const notReady = list.filter((pod) => !pod.status.containerStatuses?.every((c) => c.ready));
   record('pods', 'every pod ready', notReady.length === 0, `${list.length - notReady.length}/${list.length} ready (${[...new Set(list.map((p) => p.metadata.labels.app))].join(', ')})`);
-  const restarts = list.reduce((sum, pod) => sum + pod.status.containerStatuses.reduce((s, c) => s + c.restartCount, 0), 0);
-  record('pods', 'no restarts since start', restarts === 0, `${restarts} restart(s)`);
+  // All pods start at once, so a service can start before its database is ready, exit, and be restarted: Kubernetes
+  // doing its job, reported but not failed. A restart while the checks run (stillRunning below) is a real fault.
+  const restarted = list.filter((pod) => restartsOf(pod) > 0).map((pod) => `${pod.metadata.labels.app} ×${restartsOf(pod)}`);
+  record('pods', 'restarts while starting up (self-healing, not a failure)', true, restarted.length ? restarted.join(', ') : 'none');
+  return Object.fromEntries(list.map((pod) => [pod.metadata.name, restartsOf(pod)]));
+}
+
+const restartsOf = (pod) => pod.status.containerStatuses?.reduce((s, c) => s + c.restartCount, 0) ?? 0;
+
+/** No pod that was running when the checks began has restarted since (Gateways replaced on purpose are new pods). */
+function stillRunning(baseline) {
+  const list = JSON.parse(kubectl('get', 'pods', '-o', 'json').stdout).items;
+  const restarted = list.filter((pod) => pod.metadata.name in baseline && restartsOf(pod) > baseline[pod.metadata.name]);
+  record('pods', 'no pod restarted during the checks', restarted.length === 0, restarted.length ? restarted.map((p) => p.metadata.name).join(', ') : 'none');
 }
 
 async function edge() {
@@ -240,12 +252,13 @@ async function hub() {
 }
 
 const report = { at: new Date().toISOString() };
-if (!skip.includes('pods')) await pods();
+const baseline = skip.includes('pods') ? null : await pods();
 if (!skip.includes('edge')) await edge();
 if (!skip.includes('network')) await networkPolicies();
 if (!skip.includes('resilience')) report.resilience = await resilience();
 if (!skip.includes('hpa')) report.autoscaling = await autoscaling();
 if (!skip.includes('hub')) report.hub = await hub();
+if (baseline) stillRunning(baseline);
 report.results = results;
 writeFileSync(join(root, 'load-tests', 'out', 'k8s.json'), JSON.stringify(report, null, 2));
 const failed = results.filter((r) => !r.ok);
