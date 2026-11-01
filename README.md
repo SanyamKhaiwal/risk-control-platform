@@ -151,3 +151,7 @@ To develop the Java services outside Docker, you also need Java 21+. The repo sh
 - Measured on one laptop and a one-node cluster; the large-scale figures are estimates, with the method shown.
 - Kafka has no login yet. Network policies and signed events cover it for now.
 - Demo sign-in only: seeded users, no single sign-on.
+
+## License
+
+[MIT](LICENSE): free to use, change and share, with credit.
