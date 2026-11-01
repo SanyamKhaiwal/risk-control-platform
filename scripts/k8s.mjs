@@ -128,8 +128,11 @@ async function up() {
   apply(secret('edge-tls', await edgeCertificate(), 'kubernetes.io/tls'));
 
   step('Applying deploy/k8s');
-  await run('kubectl', ['apply', '-k', 'deploy/k8s']);
-  if (MONGO_IMAGE !== 'mongo:8.0.34') await run('kubectl', ['-n', NAMESPACE, 'set', 'image', 'statefulset/mongo', `mongo=${MONGO_IMAGE}`]);
+  // Rendered here so a MONGO_IMAGE override is in place before the first MongoDB pod starts (changing it afterwards
+  // leaves a crash-looping pod that a StatefulSet doesn't replace on its own).
+  const rendered = spawnSync('kubectl', ['kustomize', 'deploy/k8s'], { cwd: root, encoding: 'utf8' });
+  if (rendered.status !== 0) throw new Error(rendered.stderr);
+  apply(rendered.stdout.replaceAll('image: mongo:8.0.34', `image: ${MONGO_IMAGE}`));
   // A changed image under the same tag isn't noticed by Kubernetes: restart the app workloads so they pick it up.
   if (!args.includes('--no-build')) {
     await run('kubectl', ['-n', NAMESPACE, 'rollout', 'restart', 'deployment/risk-service', 'deployment/control-service',
