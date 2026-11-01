@@ -12,6 +12,12 @@ updates:
   - package-ecosystem: docker
     directory: /deploy/docker
     schedule: { interval: weekly }
+    ignore:
+      # Long-term-support lines only: Node 22, Temurin 25 (non-LTS majors are short-lived).
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
