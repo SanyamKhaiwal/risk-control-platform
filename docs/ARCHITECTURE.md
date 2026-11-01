@@ -458,7 +458,7 @@ risk-control-platform/
 | 11a | ✅ Security review: scripted penetration tests, Trivy, gitleaks, npm audit, OWASP ZAP; fixes; `docs/security-review.md` | 1 day |
 | 12 | ✅ Observability: metrics, tracing through REST, the outbox and Kafka, JSON logs, Prometheus + Grafana + Tempo, alert rules (`docs/monitoring.md`) | 1 day |
 | 13 | ✅ Kubernetes on kind: HTTPS edge, network policies, Secrets, probes, autoscaled Gateway, zero-error rolling updates (`docs/kubernetes.md`) | 1.5 days |
-| 14 | CI complete: images to GHCR, branch protection; Jenkinsfile run once locally | 1 day |
+| 14 | ✅ CI/CD on GitHub Actions: tests, gitleaks, Trivy, the whole platform attacked in CI, images to GHCR, Kubernetes deploy check, Dependabot (README "CI/CD") | 1 day |
 | 15 | ✅ k6 load tests sized to the test machine, bottleneck found and fixed (list caches, Gateway timeouts), estimates up to 1M users (`docs/performance.md`) | 1 day |
 | 16 | README with demo GIF, run instructions and design decisions | 0.5 day |
 

@@ -80,6 +80,20 @@ Screens get changes **pushed** over one open connection instead of polling: on a
 
 `node scripts/k8s.mjs` runs the platform on a local kind cluster at **https://localhost:8443**: HTTPS edge, network policies (a stray pod reaches nothing but the edge), Secrets, probes, and 2–4 autoscaled Gateways. Every Gateway was replaced under load with **0 failed requests out of 9,744**, and 400 live viewers across 4 Gateways cost the Risk Service 1.2 requests a second. Every part was also crashed under load: each one comes back by itself, a failure never spreads to the other service, and no event is lost while Kafka is down. A crashed service is back in about 9 s (it was 40–56 s): Java 25's ahead-of-time cache and room to use 2 CPUs while starting made start-up 3.5 times faster. Details and limits: [docs/kubernetes.md](docs/kubernetes.md).
 
+## CI/CD
+
+Every push and pull request runs [`ci.yml`](.github/workflows/ci.yml) on GitHub Actions:
+
+1. **Java services:** build, unit and integration tests against real PostgreSQL, MongoDB, Kafka and Redis (Testcontainers), on Java 25.
+2. **Dashboard:** tests, type check, production build, `npm audit`.
+3. **Secrets:** gitleaks over the whole history.
+4. **Whole platform:** started with `node scripts/start.mjs` as a developer would; images scanned with Trivy (a fixable critical vulnerability fails the build); the monitoring check (10 checks) and the attack suite (58 attacks, including XSS in a real browser) run against it.
+5. **Publish (main only):** the images that passed are pushed to `ghcr.io/sanyamkhaiwal/rcp-{gateway,risk-service,control-service,dashboard}`, tagged with the commit.
+
+[`k8s.yml`](.github/workflows/k8s.yml) deploys each change on main to a throwaway kind cluster with `scripts/k8s.mjs` and checks it through the HTTPS edge: pods, network policies, and Gateways replaced under load without a failed request. Dependabot opens weekly update pull requests, which go through the same pipeline.
+
+Found by the pipeline on its first runs: a heat-map cache cleared lazily (the dashboard could show old counts for a moment), dev keys unreadable by the containers on Linux, and MongoDB 8 refusing to start on the runners' Linux kernel (SERVER-121912; CI runs MongoDB 7.0, everything else 8.0).
+
 ## Security
 
 The platform has been penetration-tested by its author and by an independent reviewer, and scanned; findings, fixes and accepted risks are in [docs/security-review.md](docs/security-review.md). With the stack running:
