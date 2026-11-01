@@ -4,8 +4,8 @@
 
 A working risk-management (GRC) system built as event-driven microservices: Java 25, Spring Boot, Kafka, PostgreSQL, MongoDB, Redis, React, on Docker and Kubernetes. Load-tested, attacked and crashed on purpose, with every number below reproducible.
 
-[![CI](https://github.com/SanyamKhaiwal/risk-control-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/SanyamKhaiwal/risk-control-platform/actions/workflows/ci.yml)
-[![Kubernetes](https://github.com/SanyamKhaiwal/risk-control-platform/actions/workflows/k8s.yml/badge.svg)](https://github.com/SanyamKhaiwal/risk-control-platform/actions/workflows/k8s.yml)
+[![CI](https://github.com/SanyamKhaiwal/risk-control-platform/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/SanyamKhaiwal/risk-control-platform/actions/workflows/ci.yml)
+[![Kubernetes](https://github.com/SanyamKhaiwal/risk-control-platform/actions/workflows/k8s.yml/badge.svg?branch=main&event=push)](https://github.com/SanyamKhaiwal/risk-control-platform/actions/workflows/k8s.yml)
 
 <!-- Demo video: added later -->
 

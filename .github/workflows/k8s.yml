@@ -7,6 +7,11 @@ name: Kubernetes
 on:
   push:
     branches: [main]
+    # Changes that can't affect a build or test (Markdown, docs) don't run the pipeline.
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".github/dependabot.yml"
   workflow_dispatch:
 
 # MongoDB 7.0 in CI only: every current MongoDB 8 release refuses to start on Linux 6.19 to 7.0.13 (SERVER-121912,
