@@ -6,16 +6,13 @@ An event-driven microservices platform (Spring Boot, Kafka, Redis, React, Kubern
 
 ## Prerequisites
 
-- Java 21 (Temurin)
-- Docker Desktop
-- Node 22 LTS or newer
-- Git
+To run it: **Git**, **Docker Desktop** (give it at least 6 GB of memory) and **Node 22 LTS or newer**. Java and Maven run inside the containers, so they aren't needed.
 
-Maven isn't required: the repo ships the Maven wrapper (`./mvnw`, or `mvnw.cmd` on Windows).
+To develop the Java services outside Docker: **Java 21+** (Temurin). Maven isn't required: the repo ships the Maven wrapper (`./mvnw`, or `mvnw.cmd` on Windows). Optional extras: **kind** and **kubectl** for Kubernetes, **k6** for the load tests.
 
 ## Getting started
 
-Run the whole platform (8 containers) with one command:
+Run the whole platform (11 containers) with one command:
 
 ```bash
 node scripts/start.mjs
